@@ -404,7 +404,7 @@ fn login_whoami_logout_round_trip_through_the_file_store() {
     let t = token(json!({}));
     let o = run_cli(&["login", "--token", &t], &cfg_env(c), d.path());
     o.result.unwrap();
-    let file = cfg.path().join("mz/auth.json");
+    let file = cfg.path().join("mz").join("auth.json");
     assert!(
         o.out.starts_with(&format!(
             "Saved token for a@b.example to {} (mode 0600).\nExpires ",
@@ -483,7 +483,7 @@ fn login_reads_workos_access_token_from_the_environment() {
     let mut env = cfg_env(c);
     env.push(("WORKOS_ACCESS_TOKEN", &t));
     run_cli(&["login"], &env, d.path()).result.unwrap();
-    assert!(cfg.path().join("mz/auth.json").exists());
+    assert!(cfg.path().join("mz").join("auth.json").exists());
 }
 
 #[test]
@@ -514,7 +514,7 @@ fn whoami_with_an_expired_saved_token_says_to_log_in_again() {
     std::fs::create_dir_all(cfg.path().join("mz")).unwrap();
     let t = make_jwt(json!({"sub": "u", "exp": now() - 100}));
     std::fs::write(
-        cfg.path().join("mz/auth.json"),
+        cfg.path().join("mz").join("auth.json"),
         json!({"accessToken": t, "savedAt": "x"}).to_string(),
     )
     .unwrap();
@@ -537,7 +537,7 @@ fn the_ts_auth_file_format_is_read_unchanged() {
     // What @nyuchi/mzizi-cli 0.13 wrote: pretty JSON with camelCase keys, optional refreshToken.
     let cfg = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(cfg.path().join("mz")).unwrap();
-    std::fs::write(cfg.path().join("mz/auth.json"), "{\n  \"accessToken\": \"abc\",\n  \"refreshToken\": \"r\",\n  \"savedAt\": \"2026-01-01T00:00:00.000Z\"\n}\n").unwrap();
+    std::fs::write(cfg.path().join("mz").join("auth.json"), "{\n  \"accessToken\": \"abc\",\n  \"refreshToken\": \"r\",\n  \"savedAt\": \"2026-01-01T00:00:00.000Z\"\n}\n").unwrap();
     let store = TokenStore::from_env(&Env([
         (
             "XDG_CONFIG_HOME".into(),
@@ -610,7 +610,7 @@ fn an_unusable_keychain_falls_back_to_the_file() {
     );
     assert_eq!(
         store.write(&auth("t")).unwrap(),
-        Saved::File(cfg.path().join("mz/auth.json"))
+        Saved::File(cfg.path().join("mz").join("auth.json"))
     );
     assert_eq!(store.read(&mut Vec::new()).unwrap().access_token, "t");
 }
@@ -689,7 +689,7 @@ fn the_legacy_file_is_migrated_into_the_keychain_when_there_is_one() {
 #[test]
 fn whoami_migrates_and_reports_through_the_cli() {
     let (d, cfg) = (app_dir(), tempfile::tempdir().unwrap());
-    let legacy = cfg.path().join("mzizi/auth.json");
+    let legacy = cfg.path().join("mzizi").join("auth.json");
     std::fs::create_dir_all(legacy.parent().unwrap()).unwrap();
     std::fs::write(
         &legacy,
@@ -703,7 +703,7 @@ fn whoami_migrates_and_reports_through_the_cli() {
     );
     o.result.unwrap();
     assert!(o.err.starts_with("note: moved your saved token from "));
-    assert!(!legacy.exists() && cfg.path().join("mz/auth.json").exists());
+    assert!(!legacy.exists() && cfg.path().join("mz").join("auth.json").exists());
 }
 
 #[test]
