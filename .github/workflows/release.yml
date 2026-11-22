@@ -1,6 +1,6 @@
 name: Release
 
-# DRAFT. Builds `mz` for every platform, writes SHA256SUMS, stages the npm packages and,
+# DRAFT. Builds `mz` for every platform, writes SHA256SUMS, stages the one npm package and,
 # only on a real tag, drafts the GitHub release and publishes to crates.io and npm.
 #
 #   * A pushed tag v<version> is a real release. The tag must match Cargo.toml and
@@ -11,8 +11,9 @@ name: Release
 #   * Nothing here has ever run for real. No tag exists. Publishing needs the owner's setup
 #     (see docs/install.md, "Release setup").
 #
-# npm auth is trusted publishing (OIDC): no NPM_TOKEN. Each of the eight npm packages needs
-# this repository and this workflow file registered as its trusted publisher on npmjs.com.
+# npm auth is trusted publishing (OIDC): no NPM_TOKEN. The one npm package,
+# @nyuchi/mzizi-cli, needs this repository and this workflow file registered as its trusted
+# publisher on npmjs.com.
 # crates.io uses the CARGO_REGISTRY_TOKEN secret.
 
 on:
@@ -137,13 +138,16 @@ jobs:
       - name: SHA256SUMS
         working-directory: dist
         run: sha256sum mz-* | tee SHA256SUMS
-      - name: Stage the npm packages
+      - name: Stage the npm package
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          node scripts/stage-npm.mjs --version "$VERSION" --bin-dir dist --out stage --checksums dist/SHA256SUMS
-          for d in stage/*/; do (cd "$d" && npm pack --dry-run >/dev/null); done
+          node scripts/stage-npm.mjs --version "$VERSION" --bin-dir dist --out stage --checksums dist/SHA256SUMS --require-all
+          cd stage
+          npm pack --json > "$RUNNER_TEMP/pack.json"
+          node ../scripts/pack-summary.mjs "$RUNNER_TEMP/pack.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f ./*.tgz
       - name: Launcher tests
         run: node --test npm/test/launcher.test.js npm/test/stage.test.js
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -220,11 +224,6 @@ jobs:
       - name: Install npm with trusted publishing support
         # Trusted publishing needs npm 11.5.1 or newer, newer than the runner's.
         run: npm install -g npm@^11.5.1 # zizmor: ignore[adhoc-packages]
-      - name: Publish the platform packages, then the launcher
-        run: |
-          set -euo pipefail
-          for d in stage/*/; do
-            case "$d" in stage/launcher/) continue ;; esac
-            (cd "$d" && npm publish --access public --provenance)
-          done
-          (cd stage/launcher && npm publish --access public --provenance)
+      - name: Publish the one package (every platform binary is inside it)
+        working-directory: stage
+        run: npm publish --access public --provenance

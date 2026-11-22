@@ -62,7 +62,13 @@ pub struct SpacingToken {
     pub dense: f64,
 }
 
-const fn t(token: &'static str, layer: Layer, kind: Kind, px: f64, dense: f64) -> SpacingToken {
+pub(super) const fn t(
+    token: &'static str,
+    layer: Layer,
+    kind: Kind,
+    px: f64,
+    dense: f64,
+) -> SpacingToken {
     SpacingToken {
         token,
         layer,
@@ -72,61 +78,10 @@ const fn t(token: &'static str, layer: Layer, kind: Kind, px: f64, dense: f64) -
     }
 }
 
-/// Every per-layer spacing token.
-pub const SPACING_LAYERS: [SpacingToken; 16] = [
-    t("--space-page-x", Layer::Layout, Kind::Padding, 17.0, 17.0),
-    t(
-        "--space-page-x-wide",
-        Layer::Layout,
-        Kind::Padding,
-        28.0,
-        21.0,
-    ),
-    t("--space-section", Layer::Layout, Kind::Gap, 49.0, 28.0),
-    t(
-        "--space-container",
-        Layer::Containers,
-        Kind::Padding,
-        28.0,
-        21.0,
-    ),
-    t(
-        "--space-container-gap",
-        Layer::Containers,
-        Kind::Gap,
-        21.0,
-        14.0,
-    ),
-    t("--space-card", Layer::Cards, Kind::Padding, 21.0, 14.0),
-    t("--space-card-gap", Layer::Cards, Kind::Gap, 14.0, 7.0),
-    t("--space-card-stack", Layer::Cards, Kind::Gap, 7.0, 7.0),
-    t(
-        "--space-control-x",
-        Layer::Controls,
-        Kind::Padding,
-        17.0,
-        12.0,
-    ),
-    t(
-        "--space-field-x",
-        Layer::Controls,
-        Kind::Padding,
-        17.0,
-        12.0,
-    ),
-    t("--space-control-gap", Layer::Controls, Kind::Gap, 9.0, 7.0),
-    t(
-        "--space-control-between",
-        Layer::Controls,
-        Kind::Gap,
-        9.0,
-        9.0,
-    ),
-    t("--space-label-gap", Layer::Controls, Kind::Gap, 7.0, 5.0),
-    t("--space-chip-x", Layer::Chips, Kind::Padding, 12.0, 9.0),
-    t("--space-pill-x", Layer::Pills, Kind::Padding, 9.0, 5.0),
-    t("--space-pill-gap", Layer::Pills, Kind::Gap, 5.0, 3.0),
-];
+pub use super::generated::{
+    CONTROL_DRAWN_FLOOR_PX, HIT_DESKTOP_PX, HIT_TOUCH_PX, LEADING_BODY, SPACING_LAYERS,
+    UNPLACED_GAP_PX, UNPLACED_PADDING_PX,
+};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Floor {
@@ -155,14 +110,6 @@ pub fn floor_of(layer: Layer, kind: Kind) -> Option<Floor> {
     })
 }
 
-/// Body line height (`--leading-floor`, WCAG 1.4.12).
-pub const LEADING_BODY: f64 = 1.5;
-pub const UNPLACED_PADDING_PX: f64 = 14.0;
-pub const UNPLACED_GAP_PX: f64 = 7.0;
-pub const HIT_TOUCH_PX: f64 = 45.0;
-pub const HIT_DESKTOP_PX: f64 = 24.0;
-/// The drawn minimum of a control at desktop density (`--control-floor`).
-pub const CONTROL_DRAWN_FLOOR_PX: f64 = 28.0;
 pub const NUMBER_RULE_LIMIT_PX: f64 = 10000.0;
 /// The marker that excuses a line: `mzizi-spacing-exempt: <reason>`. A reason is required.
 pub const EXEMPT_MARKER: &str = "mzizi-spacing-exempt";

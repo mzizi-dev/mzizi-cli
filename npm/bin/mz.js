@@ -5,7 +5,6 @@
 const { spawnSync } = require("node:child_process");
 const { resolveBinary } = require("../lib/resolve.js");
 const { findPlatform } = require("../lib/platforms.js");
-const pkg = require("../package.json");
 
 function fail(message) {
   process.stderr.write(
@@ -16,20 +15,9 @@ function fail(message) {
   process.exit(1);
 }
 
-async function main() {
-  let found = resolveBinary();
-  if (!found.path && !process.env.MZ_BIN && !process.env.MZ_SKIP_DOWNLOAD && found.row) {
-    try {
-      const { downloadBinary } = require("../lib/download.js");
-      await downloadBinary({ version: pkg.version, row: found.row, platform: process.platform });
-      found = resolveBinary();
-    } catch (e) {
-      return fail(`${found.reason}; downloading it failed: ${e.message}`);
-    }
-  }
+function main() {
+  const found = resolveBinary();
   if (!found.path) return fail(found.reason);
-  // Node keeps the link's name in argv[1], so the Rust side can tell which bin was typed
-  // (`mzizi` and `fundi` are deprecated names that print a note there).
   const typed = require("node:path")
     .basename(process.argv[1] || "mz")
     .replace(/\.(c?js|cmd|exe)$/i, "");

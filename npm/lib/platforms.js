@@ -1,24 +1,12 @@
 "use strict";
-// The platform matrix. One row per shipped binary. `pkg` is the npm package that
-// holds it; `triple` is the Rust target and the suffix of the GitHub release asset.
+// The platform matrix. One row per bundled binary, kept at vendor/<triple>/mz[.exe]
+// inside this one package. `triple` is the Rust target and the suffix of the GitHub
+// release asset.
 const PLATFORMS = [
-  {
-    key: "darwin-arm64",
-    pkg: "@nyuchi/mzizi-cli-darwin-arm64",
-    triple: "aarch64-apple-darwin",
-    os: "darwin",
-    cpu: "arm64",
-  },
-  {
-    key: "darwin-x64",
-    pkg: "@nyuchi/mzizi-cli-darwin-x64",
-    triple: "x86_64-apple-darwin",
-    os: "darwin",
-    cpu: "x64",
-  },
+  { key: "darwin-arm64", triple: "aarch64-apple-darwin", os: "darwin", cpu: "arm64" },
+  { key: "darwin-x64", triple: "x86_64-apple-darwin", os: "darwin", cpu: "x64" },
   {
     key: "linux-x64-gnu",
-    pkg: "@nyuchi/mzizi-cli-linux-x64-gnu",
     triple: "x86_64-unknown-linux-gnu",
     os: "linux",
     cpu: "x64",
@@ -26,7 +14,6 @@ const PLATFORMS = [
   },
   {
     key: "linux-x64-musl",
-    pkg: "@nyuchi/mzizi-cli-linux-x64-musl",
     triple: "x86_64-unknown-linux-musl",
     os: "linux",
     cpu: "x64",
@@ -34,7 +21,6 @@ const PLATFORMS = [
   },
   {
     key: "linux-arm64-gnu",
-    pkg: "@nyuchi/mzizi-cli-linux-arm64-gnu",
     triple: "aarch64-unknown-linux-gnu",
     os: "linux",
     cpu: "arm64",
@@ -42,19 +28,12 @@ const PLATFORMS = [
   },
   {
     key: "linux-arm64-musl",
-    pkg: "@nyuchi/mzizi-cli-linux-arm64-musl",
     triple: "aarch64-unknown-linux-musl",
     os: "linux",
     cpu: "arm64",
     libc: "musl",
   },
-  {
-    key: "win32-x64",
-    pkg: "@nyuchi/mzizi-cli-win32-x64",
-    triple: "x86_64-pc-windows-msvc",
-    os: "win32",
-    cpu: "x64",
-  },
+  { key: "win32-x64", triple: "x86_64-pc-windows-msvc", os: "win32", cpu: "x64" },
 ];
 
 /** glibc or musl, from Node's own report (no child process). Injectable for tests. */

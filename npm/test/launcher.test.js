@@ -4,30 +4,32 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 const { PLATFORMS, findPlatform, detectLibc } = require("../lib/platforms.js");
 const { resolveBinary } = require("../lib/resolve.js");
-const { downloadBinary, parseSums } = require("../lib/download.js");
 
 const SHIM = path.join(__dirname, "..", "bin", "mz.js");
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "mz-npm-"));
 
 const MATRIX = [
-  ["darwin", "arm64", undefined, "@nyuchi/mzizi-cli-darwin-arm64"],
-  ["darwin", "x64", undefined, "@nyuchi/mzizi-cli-darwin-x64"],
-  ["linux", "x64", "glibc", "@nyuchi/mzizi-cli-linux-x64-gnu"],
-  ["linux", "x64", "musl", "@nyuchi/mzizi-cli-linux-x64-musl"],
-  ["linux", "arm64", "glibc", "@nyuchi/mzizi-cli-linux-arm64-gnu"],
-  ["linux", "arm64", "musl", "@nyuchi/mzizi-cli-linux-arm64-musl"],
-  ["win32", "x64", undefined, "@nyuchi/mzizi-cli-win32-x64"],
+  ["darwin", "arm64", undefined, "aarch64-apple-darwin"],
+  ["darwin", "x64", undefined, "x86_64-apple-darwin"],
+  ["linux", "x64", "glibc", "x86_64-unknown-linux-gnu"],
+  ["linux", "x64", "musl", "x86_64-unknown-linux-musl"],
+  ["linux", "arm64", "glibc", "aarch64-unknown-linux-gnu"],
+  ["linux", "arm64", "musl", "aarch64-unknown-linux-musl"],
+  ["win32", "x64", undefined, "x86_64-pc-windows-msvc"],
 ];
 
-test("every platform maps to its own package", () => {
-  for (const [platform, arch, libc, pkg] of MATRIX) {
-    assert.equal(findPlatform({ platform, arch, libc })?.pkg, pkg, `${platform}/${arch}/${libc}`);
+test("every platform maps to its own bundled target", () => {
+  for (const [platform, arch, libc, triple] of MATRIX) {
+    assert.equal(
+      findPlatform({ platform, arch, libc })?.triple,
+      triple,
+      `${platform}/${arch}/${libc}`,
+    );
   }
-  assert.equal(new Set(PLATFORMS.map((p) => p.pkg)).size, MATRIX.length);
+  assert.equal(new Set(PLATFORMS.map((p) => p.triple)).size, MATRIX.length);
 });
 
 test("unsupported platforms resolve to nothing, with a reason", () => {
@@ -43,26 +45,29 @@ test("libc detection reads the Node report", () => {
   assert.equal(detectLibc({ header: {} }), "musl");
 });
 
-test("resolution finds the binary inside the platform package", () => {
-  for (const [platform, arch, libc, pkg] of MATRIX) {
+test("resolution finds the bundled binary for each platform", () => {
+  for (const [platform, arch, libc, triple] of MATRIX) {
     const root = tmp();
     const file = platform === "win32" ? "mz.exe" : "mz";
-    fs.mkdirSync(path.join(root, "p", "bin"), { recursive: true });
-    fs.writeFileSync(path.join(root, "p", "package.json"), "{}");
-    fs.writeFileSync(path.join(root, "p", "bin", file), "");
-    const r = resolveBinary({
-      env: {},
-      platform,
-      arch,
-      libc,
-      resolvePackage: (id) => {
-        assert.equal(id, `${pkg}/package.json`);
-        return path.join(root, "p", "package.json");
-      },
-    });
-    assert.equal(r.path, path.join(root, "p", "bin", file));
-    assert.equal(r.source, pkg);
+    fs.mkdirSync(path.join(root, "vendor", triple), { recursive: true });
+    fs.writeFileSync(path.join(root, "vendor", triple, file), "");
+    const r = resolveBinary({ env: {}, platform, arch, libc, root });
+    assert.equal(r.path, path.join(root, "vendor", triple, file));
+    assert.equal(r.source, "bundled");
   }
+});
+
+test("a missing bundled binary is a clear error naming the target", () => {
+  const r = resolveBinary({ env: {}, platform: "darwin", arch: "arm64", root: tmp() });
+  assert.equal(r.path, null);
+  assert.match(r.reason, /aarch64-apple-darwin is missing/);
+});
+
+test("MZIZI_BIN is a deprecated alias of MZ_BIN", () => {
+  const d = tmp();
+  const bin = path.join(d, "my-mz");
+  fs.writeFileSync(bin, "");
+  assert.equal(resolveBinary({ env: { MZIZI_BIN: bin } }).path, bin);
 });
 
 test("MZ_BIN wins, and a missing MZ_BIN is an error, not a fallthrough", () => {
@@ -73,22 +78,6 @@ test("MZ_BIN wins, and a missing MZ_BIN is an error, not a fallthrough", () => {
   const r = resolveBinary({ env: { MZ_BIN: path.join(d, "nope") } });
   assert.equal(r.path, null);
   assert.match(r.reason, /MZ_BIN is set to .*nope/);
-});
-
-test("a vendored download is used when the package is absent", () => {
-  const root = tmp();
-  fs.mkdirSync(path.join(root, "vendor"));
-  fs.writeFileSync(path.join(root, "vendor", "mz"), "");
-  const r = resolveBinary({
-    env: {},
-    platform: "darwin",
-    arch: "arm64",
-    root,
-    resolvePackage: () => {
-      throw new Error("absent");
-    },
-  });
-  assert.equal(r.source, "download");
 });
 
 // A fake `mz`: prints its argv as JSON and exits with the code in FAKE_EXIT.
@@ -121,41 +110,29 @@ test("exit codes pass through exactly", { skip: process.platform === "win32" }, 
   }
 });
 
-test("no binary and no download: a clear error, exit 1", () => {
-  const r = runShim([], {
-    MZ_BIN: "",
-    MZ_SKIP_DOWNLOAD: "1",
-    MZ_DOWNLOAD_BASE: "file:///nonexistent",
-  });
-  if (r.status === 0) return; // a platform package happens to be installed here
+test("no binary available: a clear error, exit 1", () => {
+  const r = runShim([], { MZ_BIN: path.join(tmp(), "nope") });
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /^mz: /);
-  assert.match(r.stderr, /MZ_BIN|cargo install/);
+  assert.match(r.stderr, /^mz: MZ_BIN is set to/);
+  assert.match(r.stderr, /cargo install/);
 });
 
-test("download verifies the checksum and refuses a mismatch", async () => {
-  const base = tmp();
-  const row = findPlatform({ platform: "linux", arch: "x64", libc: "glibc" });
-  const asset = `mz-${row.triple}`;
-  const bytes = Buffer.from("#!/bin/sh\necho hi\n");
-  const dir = path.join(base, "v9.9.9");
-  fs.mkdirSync(dir);
-  fs.writeFileSync(path.join(dir, asset), bytes);
-  const good = crypto.createHash("sha256").update(bytes).digest("hex");
-  fs.writeFileSync(path.join(dir, "SHA256SUMS"), `${good}  ${asset}\n`);
-  const env = { MZ_DOWNLOAD_BASE: `file://${base}` };
-  const root = tmp();
-  const out = await downloadBinary({ version: "9.9.9", row, platform: "linux", env, root });
-  assert.equal(fs.readFileSync(out).toString(), bytes.toString());
-  fs.writeFileSync(path.join(dir, "SHA256SUMS"), `${"0".repeat(64)}  ${asset}\n`);
-  const root2 = tmp();
-  await assert.rejects(
-    downloadBinary({ version: "9.9.9", row, platform: "linux", env, root: root2 }),
-    /checksum mismatch/,
-  );
-  assert.equal(fs.existsSync(path.join(root2, "vendor", "mz")), false);
-  assert.equal(parseSums(`${good}  a\nnoise\n`).get("a"), good);
-});
+test(
+  "the shim tells the binary which old name was typed",
+  { skip: process.platform === "win32" },
+  () => {
+    const d = tmp();
+    const link = path.join(d, "fundi");
+    fs.symlinkSync(SHIM, link);
+    const bin = path.join(d, "show");
+    fs.writeFileSync(bin, '#!/bin/sh\nprintf "%s" "$MZ_INVOKED_AS"\n', { mode: 0o755 });
+    const r = spawnSync(process.execPath, [link], {
+      env: { ...process.env, MZ_BIN: bin },
+      encoding: "utf8",
+    });
+    assert.equal(r.stdout, "fundi");
+  },
+);
 
 // npx-style: the real Rust binary, when `cargo build` has produced one.
 const REAL = path.join(

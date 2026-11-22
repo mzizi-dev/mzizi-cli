@@ -5,6 +5,7 @@
 //! that carry classes or styles, scans each, and reports `file:line:column`. Offline and
 //! deterministic. Any error not excused by `mzizi-spacing-exempt: <reason>` fails the command.
 
+mod generated;
 pub mod scan;
 pub mod tokens;
 
@@ -121,7 +122,7 @@ impl CheckReport {
     /// The `--json` report, with the TypeScript key order.
     pub fn to_json(&self) -> Value {
         let mut m = Map::new();
-        m.insert("tool".into(), "mzizi check".into());
+        m.insert("tool".into(), "mz floor".into());
         m.insert("rule".into(), "spacing-floor".into());
         m.insert("version".into(), VERSION.into());
         m.insert("floor".into(), tokens::spacing_floor_json());
