@@ -243,7 +243,7 @@ fn rejects_a_path_that_does_not_exist() {
 fn cli_exits_clean_when_nothing_is_below_the_floor() {
     let r = Root::new();
     r.put("a.css", ".a { padding: 14px }");
-    let (out, res) = run(&r.path(), &["check"]);
+    let (out, res) = run(&r.path(), &["floor"]);
     assert!(res.is_ok());
     assert!(out.contains("0 violation(s)"));
 }
@@ -252,7 +252,7 @@ fn cli_exits_clean_when_nothing_is_below_the_floor() {
 fn cli_fails_after_printing_when_something_is_below_the_floor() {
     let r = Root::new();
     r.put("a.css", ".a { padding: 0 }");
-    let (out, res) = run(&r.path(), &["check", "."]);
+    let (out, res) = run(&r.path(), &["floor", "."]);
     assert!(matches!(res, Err(CliError::CheckFailed)));
     assert!(out.contains("a.css:1:6  padding-zero"));
     assert!(out.contains("mzizi-spacing-exempt"));
@@ -262,7 +262,7 @@ fn cli_fails_after_printing_when_something_is_below_the_floor() {
 fn cli_json_prints_one_parseable_report_and_still_fails() {
     let r = Root::new();
     r.put("a.css", ".a { gap: 2px }");
-    let (out, res) = run(&r.path(), &["check", "--json"]);
+    let (out, res) = run(&r.path(), &["floor", "--json"]);
     assert!(matches!(res, Err(CliError::CheckFailed)));
     let report: Value = serde_json::from_str(&out).expect("json");
     assert_eq!(report["tool"], "mzizi check");
@@ -282,32 +282,32 @@ fn cli_takes_paths_exclude_spacing_unit_and_rem() {
     r.put("a/z.css", ".a { padding: 14px }");
     r.put("b/y.tsx", r#"<div className="px-2" />"#);
     assert!(matches!(
-        run(&r.path(), &["check", "a"]).1,
+        run(&r.path(), &["floor", "a"]).1,
         Err(CliError::CheckFailed)
     ));
     assert!(
-        run(&r.path(), &["check", "a", "--exclude", "a/x.css"])
+        run(&r.path(), &["floor", "a", "--exclude", "a/x.css"])
             .1
             .is_ok()
     );
     assert!(
-        run(&r.path(), &["check", "b", "--spacing-unit", "7"])
+        run(&r.path(), &["floor", "b", "--spacing-unit", "7"])
             .1
             .is_ok()
     );
     assert!(matches!(
-        run(&r.path(), &["check", "b", "--spacing-unit", "4"]).1,
+        run(&r.path(), &["floor", "b", "--spacing-unit", "4"]).1,
         Err(CliError::CheckFailed)
     ));
     // `--rem` is accepted and applied: 1rem at 14px/rem is 14px.
     r.put("c/r.css", ".a { padding: 1rem }");
     assert!(
-        run(&r.path(), &["check", "c/r.css", "--rem", "14"])
+        run(&r.path(), &["floor", "c/r.css", "--rem", "14"])
             .1
             .is_ok()
     );
     assert!(matches!(
-        run(&r.path(), &["check", "c/r.css", "--rem", "8"]).1,
+        run(&r.path(), &["floor", "c/r.css", "--rem", "8"]).1,
         Err(CliError::CheckFailed)
     ));
 }
@@ -317,8 +317,8 @@ fn cli_accepts_exclude_equals_dir_and_prints_help_for_h() {
     let r = Root::new();
     r.put("a/x.css", ".a { padding: 0 }");
     r.put("ok.css", ".a { padding: 14px }");
-    assert!(run(&r.path(), &["check", "--exclude=a"]).1.is_ok());
-    let (out, res) = run(&r.path(), &["check", "-h"]);
+    assert!(run(&r.path(), &["floor", "--exclude=a"]).1.is_ok());
+    let (out, res) = run(&r.path(), &["floor", "-h"]);
     assert!(res.is_ok());
     assert!(out.contains("USAGE"));
 }
@@ -327,10 +327,10 @@ fn cli_accepts_exclude_equals_dir_and_prints_help_for_h() {
 fn cli_rejects_bad_usage_with_a_message() {
     let r = Root::new();
     for args in [
-        vec!["check", "--bogus"],
-        vec!["check", "--exclude"],
-        vec!["check", "--rem", "zero"],
-        vec!["check", "missing-dir"],
+        vec!["floor", "--bogus"],
+        vec!["floor", "--exclude"],
+        vec!["floor", "--rem", "zero"],
+        vec!["floor", "missing-dir"],
     ] {
         assert!(
             matches!(run(&r.path(), &args).1, Err(CliError::Msg(_))),
@@ -342,7 +342,7 @@ fn cli_rejects_bad_usage_with_a_message() {
 #[test]
 fn cli_is_documented_in_help() {
     let help = cli::HELP;
-    assert!(help.contains("check [path...]"));
+    assert!(help.contains("floor [path...]"));
     assert!(help.contains("mzizi-spacing-exempt"));
     assert!(help.contains("--json"));
 }
@@ -382,7 +382,7 @@ fn json_matches_json_stringify_layout_and_key_order() {
         "a.css",
         ".a { margin-left: -8px; padding: 0 }\n/* mzizi-spacing-exempt */",
     );
-    let (out, _) = run(&r.path(), &["check", "--json"]);
+    let (out, _) = run(&r.path(), &["floor", "--json"]);
     let top: Vec<&str> = out
         .lines()
         .filter(|l| l.starts_with("  \""))
