@@ -17,5 +17,6 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ### Added
 
+- `.github/PULL_REQUEST_TEMPLATE.md`, the org template tailored to this repo (no signed-commit or DCO boxes; `cargo fmt`, `clippy` and `test` as the local checks). The bot's generic AGENTS.md, CONTRIBUTING.md, SECURITY.md and CODE_OF_CONDUCT.md were not adopted; the repo keeps its own. Refs #3.
 - The Rust port of the TypeScript `@nyuchi/mzizi-cli` 0.13.0 (`mzizi-dev/agent-tools`):
   one binary, `mz`, with `mzizi` and `fundi` as deprecated names. Refs #1.
