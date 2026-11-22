@@ -39,7 +39,12 @@ pub fn main_with(argv: Vec<String>) -> i32 {
     let stderr = std::io::stderr();
     let (mut out, mut err) = (stdout.lock(), stderr.lock());
     let cwd = std::env::current_dir().unwrap_or_default();
-    let mut io = Io { out: &mut out, err: &mut err, cwd, env: crate::Env::from_process() };
+    let mut io = Io {
+        out: &mut out,
+        err: &mut err,
+        cwd,
+        env: crate::Env::from_process(),
+    };
     match run(&argv, &mut io) {
         Ok(()) => 0,
         Err(CliError::CheckFailed) => 1,
