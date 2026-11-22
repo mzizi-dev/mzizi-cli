@@ -1,0 +1,57 @@
+[package]
+name = "mzizi-cli"
+version = "0.14.0"
+edition = "2024"
+rust-version = "1.85"
+description = "The Mzizi CLI: `mzizi add` installs registry components from api.mzizi.dev, plus check, explore and the fundi plan agent."
+license = "Apache-2.0"
+repository = "https://github.com/mzizi-dev/mzizi-cli"
+homepage = "https://mzizi.dev"
+readme = "README.md"
+keywords = ["mzizi", "cli", "registry", "design-system"]
+categories = ["command-line-utilities"]
+exclude = ["/.github", "/tests/fixtures/recorded"]
+
+[lib]
+name = "mzizi_cli"
+path = "src/lib.rs"
+
+# One binary, `mz` (owner decision, mzizi-cli#1). `mzizi` and `fundi` are the
+# TypeScript CLI's old bin names: the same program, which prints a deprecation
+# notice on stderr and keeps `check` meaning the spacing-floor check.
+[[bin]]
+name = "mz"
+path = "src/main.rs"
+
+[[bin]]
+name = "mzizi"
+path = "src/bin/mzizi.rs"
+
+[[bin]]
+name = "fundi"
+path = "src/bin/fundi.rs"
+
+[dependencies]
+base64 = "0.23"
+keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native"] }
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls", "http2"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+opt-level = "z"
