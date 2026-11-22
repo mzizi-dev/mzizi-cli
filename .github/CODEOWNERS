@@ -3,3 +3,7 @@
 /.github/       @bryanfawcett
 /deny.toml      @bryanfawcett
 /SECURITY.md    @bryanfawcett
+/.github/workflows/ @bryanfawcett
+/npm/           @bryanfawcett
+/install.sh     @bryanfawcett
+/scripts/stage-npm.mjs @bryanfawcett

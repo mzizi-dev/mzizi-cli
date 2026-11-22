@@ -57,27 +57,37 @@ version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Wi
 
 ## How a release runs
 
-1. Push the tag `v<version>` (it must equal `version` in `Cargo.toml` and `npm/package.json`).
-2. The workflow builds all 7 targets, writes `SHA256SUMS`, stages the one npm package and drafts the GitHub release.
-3. It publishes the crate to crates.io (the `release` environment, the org `CARGO_REGISTRY_TOKEN`).
-4. Only then does it run `npm stage publish --provenance` over OIDC. The npm trusted publisher allows
-   staging only: no `npm publish` and no `npm dist-tag`, so the workflow does neither. The version waits in
-   npm's stage queue.
-5. You approve the staged version with 2FA, on npmjs.com (Staged Packages tab, Approve) or with
-   `npm stage list @nyuchi/mzizi-cli` then `npm stage approve <stage-id>`. Approval publishes it and publishes it
-   under the `latest` tag. The tag is fixed when the version is staged (`npm stage publish` defaults it to
-   `latest`), so the workflow needs no `npm dist-tag` step.
-6. You publish the draft GitHub release. Then the Homebrew formula's checksums.
+A release is fully automatic after the tag push. No step waits for a person.
 
-To discard a staged version (a bad build, a failed run): reject it with `npm stage reject <stage-id>` or on npmjs.com (Staged Packages tab, Reject); both ask for 2FA. To
-inspect it first: `npm stage view <stage-id>` or `npm stage download <stage-id>`. Staging needs npm 11.15.0 or newer
-and Node 22.14.0 or newer, which the workflow installs; staged publishing is documented at
-<https://docs.npmjs.com/staged-publishing>.
+1. Push the tag `v<version>`. It must equal `version` in `Cargo.toml` and `npm/package.json`, or the run stops.
+2. The workflow builds all 7 targets, writes `SHA256SUMS`, stages the one npm package and creates a **draft** GitHub release.
+3. Only after every build succeeded: it publishes the crate to crates.io (the `release` environment, the org
+   `CARGO_REGISTRY_TOKEN`), then `npm publish --provenance` over OIDC (no npm token).
+4. When both succeeded, it makes the GitHub release public.
 
-## Release setup (for the owner)
+Every publish step skips a version that is already published, so a failed job is fixed with "Re-run failed jobs",
+never with a new tag. The release stays a draft until everything has published. Afterwards, fill in the Homebrew
+formula's checksums (`packaging/homebrew/mz.rb`) from the release's `SHA256SUMS`.
 
-1. npm: set this repository, the workflow `release.yml` and the environment `release` as the trusted publisher of
-   `@nyuchi/mzizi-cli`, with "Allow npm publish" and "Allow npm dist-tag" unchecked (stage only).
-2. crates.io: own the `mzizi-cli` name. The org secret `CARGO_REGISTRY_TOKEN` is already visible to this repository.
-3. The `release` environment is created on first use; add approval rules if you want them.
-4. The Homebrew tap repository, and the formula's real checksums.
+## Locking the release down (settings the owner makes)
+
+Because nothing is approved by hand, the controls are these. The workflow already has them in code: it triggers on
+tag push only (plus a dry-run `workflow_dispatch`), no `pull_request_target`, every action pinned to a commit SHA,
+read-only default permissions, `id-token: write` on the npm job only, `contents: write` on the release jobs only,
+and provenance on, so consumers can verify the build.
+
+1. **Environment `release` (Settings, Environments, release):** deployment branches and tags set to "Selected
+   branches and tags", with one rule, tag `v*`. No required reviewers. The publish jobs then run only from a
+   release tag, never from a branch or a pull request.
+2. **A tag ruleset on `v*` (Settings, Rules, Rulesets):** target tags matching `v*`; rules Restrict creations,
+   Restrict updates, Restrict deletions, Block force pushes; bypass list: Repository admin. Only an admin can create
+   or move a release tag, and nobody can delete or change one. (The enterprise ruleset already blocks update,
+   deletion and force-push of `v[0-9]*.[0-9]*.[0-9]*` tags but does not restrict who creates them.)
+3. **Code owners:** `.github/CODEOWNERS` covers the workflows, `npm/`, `install.sh` and the release scripts. It only
+   takes effect where a ruleset on `main` has "Require review from Code Owners" turned on; turn that on.
+4. **npm trusted publisher** for `@nyuchi/mzizi-cli` (npmjs.com, package settings): repository
+   `mzizi-dev/mzizi-cli`, workflow `release.yml`, environment `release`, "Allow npm publish" checked,
+   "Allow npm dist-tag" unchecked.
+5. **crates.io:** own the `mzizi-cli` name. The org secret `CARGO_REGISTRY_TOKEN` is already visible to this
+   repository.
+6. The Homebrew tap repository.
