@@ -3,6 +3,7 @@
 //! Resolve everything before writing anything, and treat a registry document as remote input:
 //! every `files[].target` goes through [`resolve_within`] before it touches the project.
 
+use crate::pathsafe::{is_plain_relative, safe_write};
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
@@ -72,86 +73,6 @@ pub fn resolve_within(root: &Path, rel: &str) -> Option<PathBuf> {
     );
     let resolved = lexical_resolve(&abs_root, rel);
     resolved.starts_with(&abs_root).then_some(resolved)
-}
-
-/// A destination must be a plain relative path: no NUL, no root or drive prefix, no `..`.
-/// (`./` and a leading `~/` are stripped before this is asked.)
-fn is_plain_relative(rel: &str) -> bool {
-    !rel.contains('\0')
-        && Path::new(rel)
-            .components()
-            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
-}
-
-/// Write `body` to `rel` under `root` without ever following a symlink: every existing
-/// ancestor is checked with `symlink_metadata` (so a symlinked directory, a symlinked file
-/// and a dangling link are all refused), directories are created one level at a time, and
-/// the file lands by renaming a fresh temp file over the destination, which replaces a link
-/// itself rather than writing through it.
-fn safe_write(root: &Path, rel: &str, body: &[u8]) -> Result<(), String> {
-    if !is_plain_relative(rel) {
-        return Err(format!("refusing to write outside project root: {rel}"));
-    }
-    let canon_root = root
-        .canonicalize()
-        .map_err(|e| format!("cannot resolve the project root: {e}"))?;
-    let comps: Vec<&std::ffi::OsStr> = Path::new(rel)
-        .components()
-        .filter_map(|c| match c {
-            Component::Normal(n) => Some(n),
-            _ => None,
-        })
-        .collect();
-    let Some((file_name, dirs)) = comps.split_last() else {
-        return Err(format!("refusing to write an empty path: {rel}"));
-    };
-    let refuse = |p: &Path| {
-        format!(
-            "refusing to write through a symlink or non-directory: {}",
-            p.display()
-        )
-    };
-    let mut cur = canon_root.clone();
-    for d in dirs {
-        cur.push(d);
-        match std::fs::symlink_metadata(&cur) {
-            Ok(md) if md.file_type().is_dir() => {}
-            Ok(_) => return Err(refuse(&cur)),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                std::fs::create_dir(&cur).map_err(|e| e.to_string())?;
-            }
-            Err(e) => return Err(e.to_string()),
-        }
-    }
-    let canon_parent = cur.canonicalize().map_err(|e| e.to_string())?;
-    if !canon_parent.starts_with(&canon_root) {
-        return Err(format!("refusing to write outside project root: {rel}"));
-    }
-    let dest = canon_parent.join(file_name);
-    match std::fs::symlink_metadata(&dest) {
-        Ok(md) if md.file_type().is_file() => {}
-        Ok(_) => return Err(refuse(&dest)),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(e.to_string()),
-    }
-    let tmp = canon_parent.join(format!(
-        ".mz-tmp-{}-{}",
-        std::process::id(),
-        file_name.to_string_lossy()
-    ));
-    {
-        use std::io::Write as _;
-        let mut f = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&tmp)
-            .map_err(|e| e.to_string())?;
-        f.write_all(body).map_err(|e| e.to_string())?;
-    }
-    std::fs::rename(&tmp, &dest).map_err(|e| {
-        let _ = std::fs::remove_file(&tmp);
-        e.to_string()
-    })
 }
 
 /// Where a file lands: the document's `target`, else its `path`. Strips ONLY a leading `./`

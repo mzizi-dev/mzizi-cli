@@ -705,3 +705,42 @@ fn registry_install_argv_uses_full_urls_never_bare_names() {
         ]
     );
 }
+
+#[cfg(unix)]
+mod symlink_tools {
+    use super::*;
+    use std::os::unix::fs::symlink;
+
+    fn ctx_in(root: &std::path::Path) -> ToolCtx {
+        ToolCtx::new(root, "http://127.0.0.1:1/mcp", None, false)
+    }
+
+    #[test]
+    fn tools_refuse_to_read_write_or_list_through_a_symlink() {
+        let (d, out) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        std::fs::write(out.path().join("secret"), "SECRET").unwrap();
+        symlink(out.path(), d.path().join("link")).unwrap();
+        symlink(out.path().join("secret"), d.path().join("file")).unwrap();
+        let mut c = ctx_in(d.path());
+        assert!(dispatch_tool("read_file", &json!({"path": "link/secret"}), &mut c).is_error);
+        assert!(dispatch_tool("read_file", &json!({"path": "file"}), &mut c).is_error);
+        assert!(dispatch_tool("list_dir", &json!({"path": "link"}), &mut c).is_error);
+        let w = dispatch_tool(
+            "write_file",
+            &json!({"path": "link/x", "contents": "x"}),
+            &mut c,
+        );
+        assert!(w.is_error);
+        assert!(!out.path().join("x").exists());
+        let w = dispatch_tool(
+            "write_file",
+            &json!({"path": "file", "contents": "x"}),
+            &mut c,
+        );
+        assert!(w.is_error);
+        assert_eq!(
+            std::fs::read_to_string(out.path().join("secret")).unwrap(),
+            "SECRET"
+        );
+    }
+}

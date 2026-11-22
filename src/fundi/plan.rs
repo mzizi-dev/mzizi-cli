@@ -6,7 +6,7 @@ use regex::Regex;
 use serde_json::{Value, json};
 
 use super::anthropic::Anthropic;
-use super::explore::{ProjectSnapshot, node_message};
+use super::explore::ProjectSnapshot;
 use super::prompts::render_snapshot;
 use super::tools::{
     ToolCtx, dispatch_tool, fundi_tool_definitions, js_len, registry_install_argv, resolve_within,
@@ -365,7 +365,7 @@ fn apply_step(step: &Step, root: &Path, dry_run: bool) -> StepResult {
             run_argv(step, &argv, root, None)
         }
         Step::CreateFile { path, contents, .. } | Step::ModifyFile { path, contents, .. } => {
-            let Some(abs) = resolve_within(root, path) else {
+            let Some(_abs) = resolve_within(root, path) else {
                 return StepResult {
                     step: step.clone(),
                     applied: false,
@@ -383,14 +383,11 @@ fn apply_step(step: &Step, root: &Path, dry_run: bool) -> StepResult {
                     ),
                 );
             }
-            let written = abs
-                .parent()
-                .map_or(Ok(()), std::fs::create_dir_all)
-                .and_then(|()| std::fs::write(&abs, contents));
+            let written = crate::pathsafe::safe_write(root, path, contents.as_bytes());
             match written {
                 Ok(()) => applied(step, format!("wrote {path} ({} bytes)", js_len(contents))),
                 Err(e) => {
-                    let reason = node_message(&e, "open", &abs);
+                    let reason = e;
                     StepResult {
                         step: step.clone(),
                         applied: false,

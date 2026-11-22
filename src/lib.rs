@@ -11,6 +11,7 @@ pub mod cli;
 pub mod floor;
 pub mod fundi;
 pub mod lang;
+pub mod pathsafe;
 
 use std::collections::HashMap;
 use std::io::Write;

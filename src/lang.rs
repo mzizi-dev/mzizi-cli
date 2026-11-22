@@ -190,24 +190,31 @@ pub fn run_command(mut args: Vec<String>) -> ExitCode {
             .unwrap_or(std::path::Path::new(""));
         let mut written = Vec::new();
         for (rel, text) in &package.files {
-            written.push((dir.join(rel), text.clone().into_bytes()));
+            written.push((rel.clone(), text.clone().into_bytes()));
         }
+        // `fixtures` names files the `.mz` source asked for: plain relative paths only, read from
+        // under the source file's directory, never through a symlink.
+        let from = if from.as_os_str().is_empty() {
+            std::path::Path::new(".")
+        } else {
+            from
+        };
         for rel in &package.fixtures {
-            match std::fs::read(from.join(rel)) {
-                Ok(bytes) => written.push((dir.join(rel), bytes)),
+            match crate::pathsafe::safe_read(from, rel) {
+                Ok(bytes) => written.push((rel.clone(), bytes)),
                 Err(e) => {
                     eprintln!("mz: cannot read fixture {rel}: {e}");
                     return ExitCode::from(2);
                 }
             }
         }
-        for (file, bytes) in written {
-            let made = file
-                .parent()
-                .map_or(Ok(()), std::fs::create_dir_all)
-                .and_then(|()| std::fs::write(&file, bytes));
-            if let Err(e) = made {
-                eprintln!("mz: cannot write {}: {e}", file.display());
+        if let Err(e) = std::fs::create_dir_all(&dir) {
+            eprintln!("mz: cannot write {}: {e}", dir.display());
+            return ExitCode::from(2);
+        }
+        for (rel, bytes) in written {
+            if let Err(e) = crate::pathsafe::safe_write(&dir, &rel, &bytes) {
+                eprintln!("mz: cannot write {}: {e}", dir.join(&rel).display());
                 return ExitCode::from(2);
             }
         }

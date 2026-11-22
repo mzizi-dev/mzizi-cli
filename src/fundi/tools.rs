@@ -4,7 +4,7 @@ use std::path::Path;
 
 use serde_json::{Value, json};
 
-use super::explore::{node_message, resolve};
+use super::explore::node_message;
 use super::mcp::McpClient;
 use super::skills::load_mzizi_skills;
 
@@ -91,9 +91,7 @@ pub fn fundi_tool_definitions() -> Value {
 
 /// Resolve `rel` inside `root`, or `None` when it escapes.
 pub fn resolve_within(root: &Path, rel: &str) -> Option<std::path::PathBuf> {
-    let resolved = resolve(root, rel);
-    let norm = resolve(root, ".");
-    resolved.starts_with(&norm).then_some(resolved)
+    crate::pathsafe::resolve(root, rel).ok()
 }
 
 /// JS `encodeURIComponent`.
@@ -145,7 +143,7 @@ pub fn dispatch_tool(name: &str, input: &Value, ctx: &mut ToolCtx) -> ToolResult
             let Some(abs) = resolve_within(&root, p) else {
                 return err(format!("Refusing to read outside project root: {p}"));
             };
-            match std::fs::read(&abs) {
+            match crate::pathsafe::safe_read(&root, p) {
                 Ok(b) => ok(String::from_utf8_lossy(&b).into_owned()),
                 Err(e) => failed(name, &node_message(&e, "open", &abs)),
             }
@@ -155,12 +153,12 @@ pub fn dispatch_tool(name: &str, input: &Value, ctx: &mut ToolCtx) -> ToolResult
             else {
                 return err("write_file requires 'path' and 'contents' strings".into());
             };
-            let Some(abs) = resolve_within(&root, p) else {
+            if resolve_within(&root, p).is_none() {
                 return err(format!("Refusing to write outside project root: {p}"));
-            };
-            match write_with_dirs(&abs, c) {
+            }
+            match crate::pathsafe::safe_write(&root, p, c.as_bytes()) {
                 Ok(()) => ok(format!("wrote {p} ({} bytes)", js_len(c))),
-                Err(e) => failed(name, &node_message(&e, "open", &abs)),
+                Err(e) => failed(name, &e.to_string()),
             }
         }
         "list_dir" => {
@@ -170,7 +168,7 @@ pub fn dispatch_tool(name: &str, input: &Value, ctx: &mut ToolCtx) -> ToolResult
             let Some(abs) = resolve_within(&root, p) else {
                 return err(format!("Refusing to list outside project root: {p}"));
             };
-            match std::fs::read_dir(&abs) {
+            match crate::pathsafe::safe_list(&root, p) {
                 Ok(rd) => {
                     let mut lines: Vec<String> = rd
                         .filter_map(Result::ok)
@@ -224,13 +222,6 @@ pub fn dispatch_tool(name: &str, input: &Value, ctx: &mut ToolCtx) -> ToolResult
 
 fn failed(tool: &str, msg: &str) -> ToolResult {
     err(format!("Tool '{tool}' failed: {msg}"))
-}
-
-fn write_with_dirs(abs: &Path, contents: &str) -> std::io::Result<()> {
-    if let Some(d) = abs.parent() {
-        std::fs::create_dir_all(d)?;
-    }
-    std::fs::write(abs, contents)
 }
 
 fn run_shell(root: &Path, input: &Value) -> ToolResult {
