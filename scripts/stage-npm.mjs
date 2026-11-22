@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Stage the ONE npm package, with every platform binary bundled. Publishes nothing.
 //
-//   node scripts/stage-npm.mjs --version 0.14.0 --bin-dir dist --out stage [--checksums dist/SHA256SUMS]
+//   node scripts/stage-npm.mjs --version 0.0.2 --bin-dir dist --out stage [--checksums dist/SHA256SUMS]
 //
 // <bin-dir> holds release assets named mz-<triple>[.exe]. Each present asset is copied to
 // <out>/vendor/<triple>/mz[.exe]; the launcher (npm/) is copied beside it and its version set.
