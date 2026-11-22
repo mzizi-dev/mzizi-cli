@@ -38,7 +38,7 @@ keyring = { version = "3", default-features = false, features = [
     "windows-native",
     "linux-native",
 ] }
-mzizi-lang-compiler = { git = "https://github.com/mzizi-dev/mzizi", tag = "v0.17.0", version = "0.0.0" }
+mzizi-lang-compiler = { git = "https://github.com/mzizi-dev/mzizi", tag = "v0.14.2", version = "0.0.0" }
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = [
     "blocking",

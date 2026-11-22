@@ -717,7 +717,7 @@ dependencies = [
 [[package]]
 name = "mzizi-lang-compiler"
 version = "0.0.0"
-source = "git+https://github.com/mzizi-dev/mzizi?tag=v0.17.0#e71f96054d181bc56cec725e265f4f499f9419e0"
+source = "git+https://github.com/mzizi-dev/mzizi?tag=v0.14.2#3c374cef1d4d5c9297c138332386845b4707c02e"
 
 [[package]]
 name = "once_cell"
