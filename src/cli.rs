@@ -48,7 +48,12 @@ pub fn main_with(invoked_as: &str, argv: Vec<String>) -> i32 {
     let stderr = std::io::stderr();
     let (mut out, mut err) = (stdout.lock(), stderr.lock());
     let cwd = std::env::current_dir().unwrap_or_default();
-    let mut io = Io { out: &mut out, err: &mut err, cwd, env: crate::Env::from_process() };
+    let mut io = Io {
+        out: &mut out,
+        err: &mut err,
+        cwd,
+        env: crate::Env::from_process(),
+    };
     // The npm launcher runs `mz` for every bin name and says which one was typed.
     let invoked_as = match io.env.get("MZ_INVOKED_AS") {
         Some(n) if invoked_as == "mz" && matches!(n, "mzizi" | "fundi") => n.to_string(),
@@ -57,7 +62,10 @@ pub fn main_with(invoked_as: &str, argv: Vec<String>) -> i32 {
     io.env.0.insert("MZ_INVOKED_AS".into(), invoked_as.clone());
     if invoked_as != "mz" {
         use std::io::Write;
-        let _ = writeln!(io.err, "note: `{invoked_as}` is now `mz`; this name stays for one release.");
+        let _ = writeln!(
+            io.err,
+            "note: `{invoked_as}` is now `mz`; this name stays for one release."
+        );
     }
     match run(&argv, &mut io) {
         Ok(()) => 0,
