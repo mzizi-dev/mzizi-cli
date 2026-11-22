@@ -2,14 +2,14 @@
 
 The CLI is one Rust binary, `mz`. Pick whichever route suits you; they all end in the same program.
 
-| Route | Command | Needs |
-| ----- | ------- | ----- |
-| npm, one shot | `npx @nyuchi/mzizi-cli add button` | Node 18+ |
-| npm, global | `npm i -g @nyuchi/mzizi-cli`, then `mz --help` | Node 18+ |
-| pnpm | `pnpm dlx @nyuchi/mzizi-cli --version` | Node 18+ |
-| cargo | `cargo install mzizi-cli` | Rust 1.85+ |
-| script | `curl -fsSL https://raw.githubusercontent.com/mzizi-dev/mzizi-cli/main/install.sh \| sh` | curl |
-| Homebrew | `brew install mzizi-dev/tap/mz` | Homebrew |
+| Route         | Command                                                                                  | Needs      |
+| ------------- | ---------------------------------------------------------------------------------------- | ---------- |
+| npm, one shot | `npx @nyuchi/mzizi-cli add button`                                                       | Node 18+   |
+| npm, global   | `npm i -g @nyuchi/mzizi-cli`, then `mz --help`                                           | Node 18+   |
+| pnpm          | `pnpm dlx @nyuchi/mzizi-cli --version`                                                   | Node 18+   |
+| cargo         | `cargo install mzizi-cli`                                                                | Rust 1.85+ |
+| script        | `curl -fsSL https://raw.githubusercontent.com/mzizi-dev/mzizi-cli/main/install.sh \| sh` | curl       |
+| Homebrew      | `brew install mzizi-dev/tap/mz`                                                          | Homebrew   |
 
 Status: nothing has been released from this repository yet. None of these commands works until
 the first release is published. The Homebrew tap does not exist yet.
@@ -20,15 +20,15 @@ the first release is published. The Homebrew tap does not exist yet.
 package that npm installs as an optional dependency, and passes arguments, stdio, exit codes and
 signals straight through. The package keeps the bin names `mz`, `mzizi` and `fundi`.
 
-| Platform | Package |
-| -------- | ------- |
-| macOS, Apple silicon | `@nyuchi/mzizi-cli-darwin-arm64` |
-| macOS, Intel | `@nyuchi/mzizi-cli-darwin-x64` |
-| Linux x64, glibc | `@nyuchi/mzizi-cli-linux-x64-gnu` |
-| Linux x64, musl (Alpine) | `@nyuchi/mzizi-cli-linux-x64-musl` |
-| Linux arm64, glibc | `@nyuchi/mzizi-cli-linux-arm64-gnu` |
-| Linux arm64, musl | `@nyuchi/mzizi-cli-linux-arm64-musl` |
-| Windows x64 | `@nyuchi/mzizi-cli-win32-x64` |
+| Platform                 | Package                              |
+| ------------------------ | ------------------------------------ |
+| macOS, Apple silicon     | `@nyuchi/mzizi-cli-darwin-arm64`     |
+| macOS, Intel             | `@nyuchi/mzizi-cli-darwin-x64`       |
+| Linux x64, glibc         | `@nyuchi/mzizi-cli-linux-x64-gnu`    |
+| Linux x64, musl (Alpine) | `@nyuchi/mzizi-cli-linux-x64-musl`   |
+| Linux arm64, glibc       | `@nyuchi/mzizi-cli-linux-arm64-gnu`  |
+| Linux arm64, musl        | `@nyuchi/mzizi-cli-linux-arm64-musl` |
+| Windows x64              | `@nyuchi/mzizi-cli-win32-x64`        |
 
 If the platform package is absent (`--omit=optional`, a mirror that lacks it), the launcher
 downloads the release binary at install time or on first run and checks its sha256 against the
@@ -50,7 +50,7 @@ Installs `mz`, and `mzizi` and `fundi`, the old names, which print a deprecation
 ## install.sh
 
 Installs the release binary to `~/.local/bin` (or `$MZ_INSTALL_DIR`). It never uses sudo, and it
-refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.14.0` pins a
+refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.0.2` pins a
 version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Windows use npm or cargo.
 
 ## Homebrew

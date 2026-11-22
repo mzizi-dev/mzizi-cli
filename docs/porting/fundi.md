@@ -65,59 +65,59 @@ Tests: `tests/fundi_unit.rs`, `tests/fundi_cli.rs` (84 tests, no live network, n
 
 ## Test table (vitest case to Rust test)
 
-| vitest case | Rust test |
-| --- | --- |
-| auth: resolveToken prefers an explicit accessToken over both env vars | `resolve_token_prefers_explicit_over_both_env_vars` |
-| auth: falls back to WORKOS_ACCESS_TOKEN | `resolve_token_falls_back_to_workos_access_token` |
-| auth: falls back to MZIZI_AUTH_TOKEN | `resolve_token_falls_back_to_auth_token_alias` (now `MZ_AUTH_TOKEN`), plus new `..._deprecated_mzizi_auth_token_still_works_and_warns_once`, `..._new_name_wins_over_deprecated_and_does_not_warn` |
-| auth: returns undefined when no token | `resolve_token_returns_none_when_no_token_is_available` |
-| auth: ignores whitespace-only tokens | `resolve_token_ignores_whitespace_only_tokens` |
-| auth: assertToken returns the resolved token | `assert_token_returns_the_resolved_token` |
-| auth: assertToken throws AuthError | `assert_token_errors_when_no_token_is_available` |
-| auth: assertToken includes the label | `assert_token_includes_the_label_in_the_message` |
-| auth: getIdentity decodes a well-formed token | `get_identity_decodes_a_well_formed_workos_token` |
-| auth: accepts organizationId camelCase | `get_identity_accepts_organization_id_as_camel_case` |
-| auth: defaults permissions to [] | `get_identity_defaults_permissions_to_empty` |
-| auth: filters non-string permissions | `get_identity_filters_non_string_permission_entries` |
-| auth: expired token | `get_identity_errors_when_the_token_is_expired` |
-| auth: missing sub | `get_identity_errors_when_sub_is_missing` |
-| auth: missing exp | `get_identity_errors_when_exp_is_missing` |
-| auth: malformed token | `get_identity_errors_when_the_token_is_malformed` |
-| auth: bearerHeader with a token | `bearer_header_returns_authorization_when_a_token_is_provided` |
-| auth: bearerHeader without a token | `bearer_header_is_empty_without_a_token` |
-| explore: reads the well-known markers | `explore_reads_the_well_known_markers_and_normalises_them` |
-| explore: non-existent root surfaces no throw | `explore_surfaces_a_missing_root_as_empty_not_an_error` |
-| context-gather: returns snapshot and goal untouched | `gather_context_returns_snapshot_and_goal_untouched` |
-| context-gather: matches skills sharing a word | `gather_context_matches_skills_sharing_a_word_with_the_goal` |
-| context-gather: matches nothing for unrelated goal | `gather_context_matches_nothing_for_unrelated_words` |
-| context-gather: ignores stopwords and short words | `gather_context_ignores_stopwords_and_short_words` |
-| describe-skill: frontmatter description, first sentence | `describe_skill_reads_the_frontmatter_description_cut_at_first_sentence` |
-| describe-skill: falls back to first prose line | `describe_skill_falls_back_to_first_prose_line_when_description_is_empty` |
-| describe-skill: fast on long whitespace (ReDoS) | `describe_skill_stays_fast_on_a_long_run_of_whitespace` (Rust's regex is linear-time); new `describe_skill_caps_at_160_characters` |
-| plan-steps: Step type guards narrow | `step_kinds_narrow_correctly` (enum variants replace the guards) |
-| plan-steps: typed param access | `step_params_stay_typed_after_narrowing` |
-| plan-steps: fenced plan block | `extract_steps_parses_a_fenced_plan_block` |
-| plan-steps: bare JSON array | `extract_steps_falls_back_to_a_bare_json_array` |
-| plan-steps: unknown kind | `extract_steps_rejects_unknown_kinds` |
-| plan-steps: install-component without components | `extract_steps_rejects_install_component_without_components` |
-| plan-steps: no fenced block and no array | `extract_steps_errors_without_a_fence_or_array` |
-| tools: exposes all six tools | `tool_registry_exposes_all_six_expected_tools` |
-| tools: resolveWithin permits inside | `resolve_within_permits_paths_inside_the_root` |
-| tools: resolveWithin refuses escapes | `resolve_within_refuses_paths_that_escape_the_root` |
-| tools: read_file | `dispatch_read_file_returns_file_contents` |
-| tools: list_dir sorted, `/` on dirs | `dispatch_list_dir_returns_sorted_entries_with_slash_on_dirs` |
-| tools: refuses unknown tools | `dispatch_refuses_unknown_tools` |
-| tools: blocks write_file read-only | `dispatch_blocks_write_file_in_read_only_mode` |
-| tools: blocks run_shell read-only | `dispatch_blocks_run_shell_in_read_only_mode` |
-| tools: refuses paths outside the root | `dispatch_refuses_paths_outside_the_project_root` |
-| tools: fetch_mzizi_skill known | `dispatch_fetch_mzizi_skill_returns_body_for_a_known_skill` |
-| tools: fetch_mzizi_skill unknown | `dispatch_fetch_mzizi_skill_errors_on_unknown_name` |
-| mcp-tool-name: a tool mzizi-mcp registers, running an operation it declares | `fetch_component_calls_the_registered_tool_and_operation_with_name` (asserted on the wire: the standalone repo cannot read mzizi-mcp's source) |
-| mcp-tool-name: takes `name`, not `p_name` | same test (`arguments.arguments == {name}`, no `p_name`) |
-| cli-plan-add-output: plan prints a summary, no bodies | `plan_without_a_key_prints_a_summary_not_skill_bodies` |
-| cli-plan-add-output: `--full` | `plan_full_prints_matching_skills_in_full` |
-| cli-plan-add-output: `--skill <name>` | `plan_skill_prints_one_skill_without_a_goal` |
-| cli-plan-add-output: unknown `--skill` | `plan_skill_with_an_unknown_name_lists_the_available_ones` |
+| vitest case                                                                 | Rust test                                                                                                                                                                                          |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| auth: resolveToken prefers an explicit accessToken over both env vars       | `resolve_token_prefers_explicit_over_both_env_vars`                                                                                                                                                |
+| auth: falls back to WORKOS_ACCESS_TOKEN                                     | `resolve_token_falls_back_to_workos_access_token`                                                                                                                                                  |
+| auth: falls back to MZIZI_AUTH_TOKEN                                        | `resolve_token_falls_back_to_auth_token_alias` (now `MZ_AUTH_TOKEN`), plus new `..._deprecated_mzizi_auth_token_still_works_and_warns_once`, `..._new_name_wins_over_deprecated_and_does_not_warn` |
+| auth: returns undefined when no token                                       | `resolve_token_returns_none_when_no_token_is_available`                                                                                                                                            |
+| auth: ignores whitespace-only tokens                                        | `resolve_token_ignores_whitespace_only_tokens`                                                                                                                                                     |
+| auth: assertToken returns the resolved token                                | `assert_token_returns_the_resolved_token`                                                                                                                                                          |
+| auth: assertToken throws AuthError                                          | `assert_token_errors_when_no_token_is_available`                                                                                                                                                   |
+| auth: assertToken includes the label                                        | `assert_token_includes_the_label_in_the_message`                                                                                                                                                   |
+| auth: getIdentity decodes a well-formed token                               | `get_identity_decodes_a_well_formed_workos_token`                                                                                                                                                  |
+| auth: accepts organizationId camelCase                                      | `get_identity_accepts_organization_id_as_camel_case`                                                                                                                                               |
+| auth: defaults permissions to []                                            | `get_identity_defaults_permissions_to_empty`                                                                                                                                                       |
+| auth: filters non-string permissions                                        | `get_identity_filters_non_string_permission_entries`                                                                                                                                               |
+| auth: expired token                                                         | `get_identity_errors_when_the_token_is_expired`                                                                                                                                                    |
+| auth: missing sub                                                           | `get_identity_errors_when_sub_is_missing`                                                                                                                                                          |
+| auth: missing exp                                                           | `get_identity_errors_when_exp_is_missing`                                                                                                                                                          |
+| auth: malformed token                                                       | `get_identity_errors_when_the_token_is_malformed`                                                                                                                                                  |
+| auth: bearerHeader with a token                                             | `bearer_header_returns_authorization_when_a_token_is_provided`                                                                                                                                     |
+| auth: bearerHeader without a token                                          | `bearer_header_is_empty_without_a_token`                                                                                                                                                           |
+| explore: reads the well-known markers                                       | `explore_reads_the_well_known_markers_and_normalises_them`                                                                                                                                         |
+| explore: non-existent root surfaces no throw                                | `explore_surfaces_a_missing_root_as_empty_not_an_error`                                                                                                                                            |
+| context-gather: returns snapshot and goal untouched                         | `gather_context_returns_snapshot_and_goal_untouched`                                                                                                                                               |
+| context-gather: matches skills sharing a word                               | `gather_context_matches_skills_sharing_a_word_with_the_goal`                                                                                                                                       |
+| context-gather: matches nothing for unrelated goal                          | `gather_context_matches_nothing_for_unrelated_words`                                                                                                                                               |
+| context-gather: ignores stopwords and short words                           | `gather_context_ignores_stopwords_and_short_words`                                                                                                                                                 |
+| describe-skill: frontmatter description, first sentence                     | `describe_skill_reads_the_frontmatter_description_cut_at_first_sentence`                                                                                                                           |
+| describe-skill: falls back to first prose line                              | `describe_skill_falls_back_to_first_prose_line_when_description_is_empty`                                                                                                                          |
+| describe-skill: fast on long whitespace (ReDoS)                             | `describe_skill_stays_fast_on_a_long_run_of_whitespace` (Rust's regex is linear-time); new `describe_skill_caps_at_160_characters`                                                                 |
+| plan-steps: Step type guards narrow                                         | `step_kinds_narrow_correctly` (enum variants replace the guards)                                                                                                                                   |
+| plan-steps: typed param access                                              | `step_params_stay_typed_after_narrowing`                                                                                                                                                           |
+| plan-steps: fenced plan block                                               | `extract_steps_parses_a_fenced_plan_block`                                                                                                                                                         |
+| plan-steps: bare JSON array                                                 | `extract_steps_falls_back_to_a_bare_json_array`                                                                                                                                                    |
+| plan-steps: unknown kind                                                    | `extract_steps_rejects_unknown_kinds`                                                                                                                                                              |
+| plan-steps: install-component without components                            | `extract_steps_rejects_install_component_without_components`                                                                                                                                       |
+| plan-steps: no fenced block and no array                                    | `extract_steps_errors_without_a_fence_or_array`                                                                                                                                                    |
+| tools: exposes all six tools                                                | `tool_registry_exposes_all_six_expected_tools`                                                                                                                                                     |
+| tools: resolveWithin permits inside                                         | `resolve_within_permits_paths_inside_the_root`                                                                                                                                                     |
+| tools: resolveWithin refuses escapes                                        | `resolve_within_refuses_paths_that_escape_the_root`                                                                                                                                                |
+| tools: read_file                                                            | `dispatch_read_file_returns_file_contents`                                                                                                                                                         |
+| tools: list_dir sorted, `/` on dirs                                         | `dispatch_list_dir_returns_sorted_entries_with_slash_on_dirs`                                                                                                                                      |
+| tools: refuses unknown tools                                                | `dispatch_refuses_unknown_tools`                                                                                                                                                                   |
+| tools: blocks write_file read-only                                          | `dispatch_blocks_write_file_in_read_only_mode`                                                                                                                                                     |
+| tools: blocks run_shell read-only                                           | `dispatch_blocks_run_shell_in_read_only_mode`                                                                                                                                                      |
+| tools: refuses paths outside the root                                       | `dispatch_refuses_paths_outside_the_project_root`                                                                                                                                                  |
+| tools: fetch_mzizi_skill known                                              | `dispatch_fetch_mzizi_skill_returns_body_for_a_known_skill`                                                                                                                                        |
+| tools: fetch_mzizi_skill unknown                                            | `dispatch_fetch_mzizi_skill_errors_on_unknown_name`                                                                                                                                                |
+| mcp-tool-name: a tool mzizi-mcp registers, running an operation it declares | `fetch_component_calls_the_registered_tool_and_operation_with_name` (asserted on the wire: the standalone repo cannot read mzizi-mcp's source)                                                     |
+| mcp-tool-name: takes `name`, not `p_name`                                   | same test (`arguments.arguments == {name}`, no `p_name`)                                                                                                                                           |
+| cli-plan-add-output: plan prints a summary, no bodies                       | `plan_without_a_key_prints_a_summary_not_skill_bodies`                                                                                                                                             |
+| cli-plan-add-output: `--full`                                               | `plan_full_prints_matching_skills_in_full`                                                                                                                                                         |
+| cli-plan-add-output: `--skill <name>`                                       | `plan_skill_prints_one_skill_without_a_goal`                                                                                                                                                       |
+| cli-plan-add-output: unknown `--skill`                                      | `plan_skill_with_an_unknown_name_lists_the_available_ones`                                                                                                                                         |
 
 The `add` half of cli-plan-add-output is the add fork's. New tests with no vitest ancestor: SSE and
 HTTP-fallback component fetches, both-fail message, install argv, chat request shape, `MZ_*`/`MZIZI_*`

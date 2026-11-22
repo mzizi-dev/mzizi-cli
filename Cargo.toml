@@ -1,6 +1,6 @@
 [package]
 name = "mzizi-cli"
-version = "0.14.0"
+version = "0.0.2"
 edition = "2024"
 rust-version = "1.85"
 description = "The Mzizi CLI: `mzizi add` installs registry components from api.mzizi.dev, plus check, explore and the fundi plan agent."
@@ -33,10 +33,19 @@ path = "src/bin/fundi.rs"
 
 [dependencies]
 base64 = "0.23"
-keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native"] }
+keyring = { version = "3", default-features = false, features = [
+    "apple-native",
+    "windows-native",
+    "linux-native",
+] }
 mzizi-lang-compiler = { git = "https://github.com/mzizi-dev/mzizi", tag = "v0.17.0", version = "0.0.0" }
 regex = "1"
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls", "http2"] }
+reqwest = { version = "0.13", default-features = false, features = [
+    "blocking",
+    "json",
+    "rustls",
+    "http2",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 url = "2"
