@@ -4,6 +4,10 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### Fixed
+
+- **`release.yml`:** the aarch64-apple-darwin build ran on the `macos-14` label, which never got a runner (the job sat unassigned and was cancelled in the dry run); it uses `macos-latest`, which CI already uses. Refs #3.
+
 ### Changed
 
 - **Version 0.14.0** across the crate, the npm package, install.sh, the Homebrew draft and the docs, continuing `@nyuchi/mzizi-cli` 0.13.0 (owner-approved release-policy exception; the baseline is the `v0.13.0` tag). Refs #3.
