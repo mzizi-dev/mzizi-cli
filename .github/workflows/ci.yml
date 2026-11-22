@@ -91,5 +91,6 @@ jobs:
         run: |
           set -euo pipefail
           sha=$(sed -n 's/^pub const SOURCE_SHA: &str = "\([0-9a-f]\{40\}\)";$/\1/p' src/floor/generated.rs)
-          curl -fsSL "https://raw.githubusercontent.com/mzizi-dev/mzizi-registry/${sha}/styles/pattern/tokens.css" -o "$RUNNER_TEMP/tokens.css"
+          base="https://raw.githubusercontent.com/mzizi-dev/mzizi-registry/${sha}"
+          curl -fsSL "${base}/styles/pattern/tokens.css" -o "$RUNNER_TEMP/tokens.css"
           node scripts/generate-floor-tokens.mjs --from "$RUNNER_TEMP/tokens.css" --sha "$sha" --check

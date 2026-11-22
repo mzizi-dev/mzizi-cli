@@ -138,14 +138,15 @@ jobs:
       - name: SHA256SUMS
         working-directory: dist
         run: sha256sum mz-* | tee SHA256SUMS
-      - name: Stage the npm packages
+      - name: Stage the npm package
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
           node scripts/stage-npm.mjs --version "$VERSION" --bin-dir dist --out stage --checksums dist/SHA256SUMS --require-all
           cd stage
-          npm pack --json | node -e 'const [p]=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log("npm tarball: "+p.size+" bytes, "+p.unpackedSize+" unpacked, "+p.files.length+" files")' | tee -a "$GITHUB_STEP_SUMMARY"
+          npm pack --json > "$RUNNER_TEMP/pack.json"
+          node ../scripts/pack-summary.mjs "$RUNNER_TEMP/pack.json" | tee -a "$GITHUB_STEP_SUMMARY"
           rm -f ./*.tgz
       - name: Launcher tests
         run: node --test npm/test/launcher.test.js npm/test/stage.test.js
