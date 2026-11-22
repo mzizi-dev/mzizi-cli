@@ -34,6 +34,29 @@ pub struct HttpFetch {
     client: reqwest::blocking::Client,
     registry_base: Option<String>,
     crates_base: Option<String>,
+    /// Set when an override variable is not acceptable; surfaced by the first request.
+    base_error: Option<String>,
+}
+
+/// An override base must be https, or http to a loopback host (a fixture server).
+fn check_override_base(var: &str, base: &str) -> Result<(), String> {
+    let u = reqwest::Url::parse(base).map_err(|_| format!("{var} is not a URL: {base}"))?;
+    if !u.username().is_empty() || u.password().is_some() {
+        return Err(format!("{var} must not carry credentials"));
+    }
+    let loopback = match u.host() {
+        Some(url::Host::Domain(d)) => d == "localhost",
+        Some(url::Host::Ipv4(a)) => a.is_loopback(),
+        Some(url::Host::Ipv6(a)) => a.is_loopback(),
+        None => false,
+    };
+    match u.scheme() {
+        "https" => Ok(()),
+        "http" if loopback => Ok(()),
+        _ => Err(format!(
+            "{var} must be https (http is allowed only for a loopback host): {base}"
+        )),
+    }
 }
 
 impl HttpFetch {
@@ -43,12 +66,35 @@ impl HttpFetch {
             env.get_trimmed(k)
                 .map(|v| v.trim_end_matches('/').to_string())
         };
+        let (registry_base, crates_base) = (base("MZ_REGISTRY_BASE"), base("MZ_CRATES_BASE"));
+        let base_error = [
+            ("MZ_REGISTRY_BASE", &registry_base),
+            ("MZ_CRATES_BASE", &crates_base),
+        ]
+        .into_iter()
+        .find_map(|(k, v)| v.as_deref().and_then(|b| check_override_base(k, b).err()));
+        // A redirect may only stay on the origin it started from: a registry document must not
+        // be able to bounce the CLI to another host, scheme or port.
+        let policy = reqwest::redirect::Policy::custom(|attempt| {
+            let same = attempt.previous().last().is_some_and(|prev| {
+                prev.scheme() == attempt.url().scheme()
+                    && prev.host_str() == attempt.url().host_str()
+                    && prev.port_or_known_default() == attempt.url().port_or_known_default()
+            });
+            if same && attempt.previous().len() < 5 {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        });
         HttpFetch {
             client: reqwest::blocking::Client::builder()
+                .redirect(policy)
                 .build()
                 .expect("http client"),
-            registry_base: base("MZ_REGISTRY_BASE"),
-            crates_base: base("MZ_CRATES_BASE"),
+            registry_base,
+            crates_base,
+            base_error,
         }
     }
 
@@ -67,6 +113,9 @@ impl HttpFetch {
 
 impl Fetch for HttpFetch {
     fn get(&self, url: &str, user_agent: &str, timeout: Duration) -> Result<Response, String> {
+        if let Some(e) = &self.base_error {
+            return Err(e.clone());
+        }
         let res = self
             .client
             .get(self.rewrite(url))
@@ -213,6 +262,30 @@ fn assert_fetchable_url(raw: &str, required_by: &[String]) -> Result<String, Str
     })?;
     if parsed.scheme() != "https" {
         return Err(format!("refusing to fetch {raw}: not https"));
+    }
+    // Registry documents are untrusted input: a document must not point the CLI at another
+    // origin (SSRF), so only the registry's own origin and /v1 prefix are fetched.
+    let origin = reqwest::Url::parse(REGISTRY_ORIGIN).map_err(|e| e.to_string())?;
+    let refuse = |why: &str| format!("refusing to fetch {raw}: {why}");
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err(refuse("the URL carries credentials"));
+    }
+    if !matches!(parsed.host(), Some(url::Host::Domain(_))) {
+        return Err(refuse("an IP address is not the registry"));
+    }
+    if parsed.host_str() != origin.host_str() {
+        return Err(refuse(&format!(
+            "the host is not {}",
+            origin.host_str().unwrap_or("")
+        )));
+    }
+    if parsed.port().is_some() {
+        return Err(refuse("an explicit port is not allowed"));
+    }
+    let under_prefix = parsed.path() == REGISTRY_PREFIX
+        || parsed.path().starts_with(&format!("{REGISTRY_PREFIX}/"));
+    if !under_prefix {
+        return Err(refuse(&format!("the path is not under {REGISTRY_PREFIX}")));
     }
     Ok(parsed.to_string())
 }
@@ -478,6 +551,72 @@ mod tests {
             "{e}"
         );
     }
+    #[test]
+    fn refuses_hostile_registry_urls() {
+        for bad in [
+            "https://evil.example/v1/ui/x",
+            "http://api.mzizi.dev/v1/ui/x",
+            "https://user:pw@api.mzizi.dev/v1/ui/x",
+            "https://api.mzizi.dev:8443/v1/ui/x",
+            "https://localhost/v1/ui/x",
+            "https://127.0.0.1/v1/ui/x",
+            "https://[::1]/v1/ui/x",
+            "https://api.mzizi.dev/other/x",
+            "https://api.mzizi.dev/v1/../admin",
+            "https://api.mzizi.dev/v1/%2e%2e/admin",
+            "https://api.mzizi.dev.evil.example/v1/ui/x",
+        ] {
+            assert!(assert_fetchable_url(bad, &[]).is_err(), "{bad}");
+        }
+        assert!(assert_fetchable_url("https://api.mzizi.dev/v1/ui/button", &[]).is_ok());
+    }
+
+    #[test]
+    fn a_redirect_to_another_origin_is_not_followed() {
+        use std::io::{Read, Write};
+        let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let hit = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (hit2, other2) = (hit.clone(), other.try_clone().unwrap());
+        std::thread::spawn(move || {
+            if other2.accept().is_ok() {
+                hit2.store(true, std::sync::atomic::Ordering::SeqCst);
+            }
+        });
+        let srv = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let location = format!(
+            "http://127.0.0.1:{}/v1/ui/x",
+            other.local_addr().unwrap().port()
+        );
+        let base = format!("http://127.0.0.1:{}", srv.local_addr().unwrap().port());
+        std::thread::spawn(move || {
+            let (mut s, _) = srv.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = s.read(&mut buf);
+            let _ = write!(
+                s,
+                "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\n\r\n"
+            );
+        });
+        let env = Env([("MZ_REGISTRY_BASE".to_string(), base)]
+            .into_iter()
+            .collect());
+        let res = HttpFetch::new(&env)
+            .get("https://api.mzizi.dev/v1/ui/x", "t", Duration::from_secs(5))
+            .unwrap();
+        assert_eq!(res.status, 302);
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(!hit.load(std::sync::atomic::Ordering::SeqCst));
+    }
+
+    #[test]
+    fn an_override_base_is_https_or_loopback_http_only() {
+        assert!(check_override_base("V", "https://example.test").is_ok());
+        assert!(check_override_base("V", "http://127.0.0.1:8080").is_ok());
+        assert!(check_override_base("V", "http://localhost:1").is_ok());
+        assert!(check_override_base("V", "http://example.test").is_err());
+        assert!(check_override_base("V", "https://u:p@example.test").is_err());
+    }
+
     #[test]
     fn refuses_a_non_https_dependency_url() {
         let f = FakeFetch::default().with(

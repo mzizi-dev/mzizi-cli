@@ -63,12 +63,95 @@ fn lexical_resolve(root: &Path, rel: &str) -> PathBuf {
 
 /// Resolve a relative project path to an absolute one, refusing to escape the project root.
 pub fn resolve_within(root: &Path, rel: &str) -> Option<PathBuf> {
+    if !is_plain_relative(rel) {
+        return None;
+    }
     let abs_root = lexical_resolve(
         &std::env::current_dir().unwrap_or_default(),
         &root.to_string_lossy(),
     );
     let resolved = lexical_resolve(&abs_root, rel);
     resolved.starts_with(&abs_root).then_some(resolved)
+}
+
+/// A destination must be a plain relative path: no NUL, no root or drive prefix, no `..`.
+/// (`./` and a leading `~/` are stripped before this is asked.)
+fn is_plain_relative(rel: &str) -> bool {
+    !rel.contains('\0')
+        && Path::new(rel)
+            .components()
+            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
+}
+
+/// Write `body` to `rel` under `root` without ever following a symlink: every existing
+/// ancestor is checked with `symlink_metadata` (so a symlinked directory, a symlinked file
+/// and a dangling link are all refused), directories are created one level at a time, and
+/// the file lands by renaming a fresh temp file over the destination, which replaces a link
+/// itself rather than writing through it.
+fn safe_write(root: &Path, rel: &str, body: &[u8]) -> Result<(), String> {
+    if !is_plain_relative(rel) {
+        return Err(format!("refusing to write outside project root: {rel}"));
+    }
+    let canon_root = root
+        .canonicalize()
+        .map_err(|e| format!("cannot resolve the project root: {e}"))?;
+    let comps: Vec<&std::ffi::OsStr> = Path::new(rel)
+        .components()
+        .filter_map(|c| match c {
+            Component::Normal(n) => Some(n),
+            _ => None,
+        })
+        .collect();
+    let Some((file_name, dirs)) = comps.split_last() else {
+        return Err(format!("refusing to write an empty path: {rel}"));
+    };
+    let refuse = |p: &Path| {
+        format!(
+            "refusing to write through a symlink or non-directory: {}",
+            p.display()
+        )
+    };
+    let mut cur = canon_root.clone();
+    for d in dirs {
+        cur.push(d);
+        match std::fs::symlink_metadata(&cur) {
+            Ok(md) if md.file_type().is_dir() => {}
+            Ok(_) => return Err(refuse(&cur)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                std::fs::create_dir(&cur).map_err(|e| e.to_string())?;
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    let canon_parent = cur.canonicalize().map_err(|e| e.to_string())?;
+    if !canon_parent.starts_with(&canon_root) {
+        return Err(format!("refusing to write outside project root: {rel}"));
+    }
+    let dest = canon_parent.join(file_name);
+    match std::fs::symlink_metadata(&dest) {
+        Ok(md) if md.file_type().is_file() => {}
+        Ok(_) => return Err(refuse(&dest)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e.to_string()),
+    }
+    let tmp = canon_parent.join(format!(
+        ".mz-tmp-{}-{}",
+        std::process::id(),
+        file_name.to_string_lossy()
+    ));
+    {
+        use std::io::Write as _;
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)
+            .map_err(|e| e.to_string())?;
+        f.write_all(body).map_err(|e| e.to_string())?;
+    }
+    std::fs::rename(&tmp, &dest).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        e.to_string()
+    })
 }
 
 /// Where a file lands: the document's `target`, else its `path`. Strips ONLY a leading `./`
@@ -339,17 +422,14 @@ pub fn apply_plan(
             result.skipped.push(w.path.clone());
             continue;
         }
-        let abs = resolve_within(project_root, &w.path)
+        resolve_within(project_root, &w.path)
             .ok_or_else(|| format!("refusing to write outside project root: {}", w.path))?;
         let body = contents
             .iter()
             .find(|(d, _)| *d == w.path)
             .map(|(_, b)| b)
             .ok_or_else(|| format!("internal: no content for planned write {}", w.path))?;
-        if let Some(dir) = abs.parent() {
-            std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-        }
-        std::fs::write(&abs, body).map_err(|e| e.to_string())?;
+        safe_write(project_root, &w.path, body)?;
         result.written.push(w.path.clone());
     }
     Ok(result)
@@ -576,6 +656,77 @@ mod tests {
     }
 
     // install.test.ts > applyPlan
+    #[cfg(unix)]
+    mod symlinks {
+        use super::*;
+        use std::os::unix::fs::symlink;
+
+        fn plan_for(dir: &Path, dest: &str) -> InstallPlan {
+            plan_of(vec![tsx_item("x", dest, "BODY")], Target::Tsx, dir).unwrap()
+        }
+
+        #[test]
+        fn refuses_to_write_through_a_symlinked_directory_that_points_outside() {
+            let (d, outside) = (root(), root());
+            symlink(outside.path(), d.path().join("components")).unwrap();
+            let plan = plan_for(d.path(), "components/x.tsx");
+            let err = apply_plan(&plan, d.path(), false).unwrap_err();
+            assert!(err.contains("symlink"), "{err}");
+            assert!(!outside.path().join("x.tsx").exists());
+        }
+
+        #[test]
+        fn refuses_to_overwrite_through_a_symlinked_file() {
+            let (d, outside) = (root(), root());
+            std::fs::write(outside.path().join("secret"), "SECRET").unwrap();
+            symlink(outside.path().join("secret"), d.path().join("x.tsx")).unwrap();
+            let plan = plan_for(d.path(), "x.tsx");
+            let err = apply_plan(&plan, d.path(), true).unwrap_err();
+            assert!(err.contains("symlink"), "{err}");
+            assert_eq!(
+                std::fs::read_to_string(outside.path().join("secret")).unwrap(),
+                "SECRET"
+            );
+        }
+
+        #[test]
+        fn refuses_a_dangling_symlink_destination() {
+            let (d, outside) = (root(), root());
+            symlink(outside.path().join("not-yet"), d.path().join("x.tsx")).unwrap();
+            let plan = plan_for(d.path(), "x.tsx");
+            let err = apply_plan(&plan, d.path(), true).unwrap_err();
+            assert!(err.contains("symlink"), "{err}");
+            assert!(!outside.path().join("not-yet").exists());
+        }
+
+        #[test]
+        fn refuses_dotdot_absolute_and_nul_destinations() {
+            let d = root();
+            for bad in ["a/../b.tsx", "../b.tsx", "/etc/b.tsx", "a\0b.tsx"] {
+                assert!(
+                    super::super::resolve_within(d.path(), bad).is_none(),
+                    "{bad}"
+                );
+                assert!(
+                    super::super::safe_write(d.path(), bad, b"x").is_err(),
+                    "{bad}"
+                );
+            }
+        }
+
+        #[test]
+        fn still_writes_inside_a_real_directory() {
+            let d = root();
+            std::fs::create_dir(d.path().join("components")).unwrap();
+            let plan = plan_for(d.path(), "components/x.tsx");
+            apply_plan(&plan, d.path(), false).unwrap();
+            assert_eq!(
+                std::fs::read_to_string(d.path().join("components/x.tsx")).unwrap(),
+                "BODY"
+            );
+        }
+    }
+
     #[test]
     fn writes_planned_files_and_creates_missing_directories() {
         let d = root();
