@@ -716,8 +716,9 @@ dependencies = [
 
 [[package]]
 name = "mzizi-lang-compiler"
-version = "0.0.0"
-source = "git+https://github.com/mzizi-dev/mzizi?tag=v0.17.0#e71f96054d181bc56cec725e265f4f499f9419e0"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecdccf2d7137bc9a233d1386b9273753683fb0fde4092d89d0dcaabfa96fce9e"
 
 [[package]]
 name = "once_cell"
