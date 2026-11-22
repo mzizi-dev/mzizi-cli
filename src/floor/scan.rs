@@ -723,8 +723,9 @@ fn hit_hit(px: f64, found: &str, index: usize, ctx: &Ctx) -> Option<Hit> {
             HIT_TOUCH_PX,
             Some(px),
             format!(
-                "`{found}` is {}px; on touch the hit region is {}px (--target-floor). Keep the 45px region with hit-area or a token such as h-control, or mark a dense control",
+                "`{found}` is {}px; on touch the hit region is {}px (--target-floor). Keep the {}px region with hit-area or a token such as h-control, or mark a dense control",
                 js_num(px),
+                js_num(HIT_TOUCH_PX),
                 js_num(HIT_TOUCH_PX)
             ),
         ));

@@ -9,7 +9,7 @@ npm i -g @nyuchi/mzizi-cli && mz --help
 pnpm dlx @nyuchi/mzizi-cli --version
 ```
 
-The binary comes from a per-platform optional dependency (`@nyuchi/mzizi-cli-<platform>`).
-If that is missing, the launcher downloads the release binary and verifies its sha256.
-Set `MZ_BIN` to use your own binary; set `MZ_SKIP_DOWNLOAD=1` to forbid the download.
+Every platform binary is bundled in this one package (macOS arm64 and x64, Linux x64 and arm64
+on glibc and musl, Windows x64); the launcher picks yours. Set `MZ_BIN` to use your own binary.
+`mzizi` and `fundi` are the old names of `mz`, kept as bins for one release.
 Node 18 or later. See [docs/install.md](https://github.com/mzizi-dev/mzizi-cli/blob/main/docs/install.md).

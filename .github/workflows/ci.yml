@@ -64,3 +64,32 @@ jobs:
       - name: node --test
         working-directory: npm
         run: npm test
+
+  # The Bundu floor `mz floor` enforces is read from the Mzizi token source, never typed here:
+  # src/floor/generated.rs must equal what the generator makes from the registry's tokens.css at
+  # the commit it names.
+  floor-tokens:
+    name: floor tokens
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          components: rustfmt
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Regenerate and compare
+        run: |
+          set -euo pipefail
+          sha=$(sed -n 's/^pub const SOURCE_SHA: &str = "\([0-9a-f]\{40\}\)";$/\1/p' src/floor/generated.rs)
+          curl -fsSL "https://raw.githubusercontent.com/mzizi-dev/mzizi-registry/${sha}/styles/pattern/tokens.css" -o "$RUNNER_TEMP/tokens.css"
+          node scripts/generate-floor-tokens.mjs --from "$RUNNER_TEMP/tokens.css" --sha "$sha" --check

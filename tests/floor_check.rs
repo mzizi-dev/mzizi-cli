@@ -265,7 +265,7 @@ fn cli_json_prints_one_parseable_report_and_still_fails() {
     let (out, res) = run(&r.path(), &["floor", "--json"]);
     assert!(matches!(res, Err(CliError::CheckFailed)));
     let report: Value = serde_json::from_str(&out).expect("json");
-    assert_eq!(report["tool"], "mzizi check");
+    assert_eq!(report["tool"], "mz floor");
     assert_eq!(report["ok"], false);
     let v = &report["violations"][0];
     assert_eq!(v["file"], "a.css");

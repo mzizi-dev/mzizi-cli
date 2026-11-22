@@ -16,28 +16,26 @@ the first release is published. The Homebrew tap does not exist yet.
 
 ## npm
 
-`@nyuchi/mzizi-cli` is a launcher with no CLI logic. It runs the `mz` binary from a per-platform
-package that npm installs as an optional dependency, and passes arguments, stdio, exit codes and
-signals straight through. The package keeps the bin names `mz`, `mzizi` and `fundi`.
+`@nyuchi/mzizi-cli` is one package with every platform binary inside it (about 15 MB packed, 30 MB
+installed, measured on the staged package). A launcher with no CLI logic picks the binary for your
+platform and runs it, passing arguments, stdio, exit codes and signals straight through. The
+package keeps the bin names `mz`, `mzizi` and `fundi` (the last two are the old names, which print
+a deprecation note). There is no postinstall script and no download.
 
-| Platform                 | Package                              |
-| ------------------------ | ------------------------------------ |
-| macOS, Apple silicon     | `@nyuchi/mzizi-cli-darwin-arm64`     |
-| macOS, Intel             | `@nyuchi/mzizi-cli-darwin-x64`       |
-| Linux x64, glibc         | `@nyuchi/mzizi-cli-linux-x64-gnu`    |
-| Linux x64, musl (Alpine) | `@nyuchi/mzizi-cli-linux-x64-musl`   |
-| Linux arm64, glibc       | `@nyuchi/mzizi-cli-linux-arm64-gnu`  |
-| Linux arm64, musl        | `@nyuchi/mzizi-cli-linux-arm64-musl` |
-| Windows x64              | `@nyuchi/mzizi-cli-win32-x64`        |
+| Platform                 | Bundled target               |
+| ------------------------ | ---------------------------- |
+| macOS, Apple silicon     | `aarch64-apple-darwin`       |
+| macOS, Intel             | `x86_64-apple-darwin`        |
+| Linux x64, glibc         | `x86_64-unknown-linux-gnu`   |
+| Linux x64, musl (Alpine) | `x86_64-unknown-linux-musl`  |
+| Linux arm64, glibc       | `aarch64-unknown-linux-gnu`  |
+| Linux arm64, musl        | `aarch64-unknown-linux-musl` |
+| Windows x64              | `x86_64-pc-windows-msvc`     |
 
-If the platform package is absent (`--omit=optional`, a mirror that lacks it), the launcher
-downloads the release binary at install time or on first run and checks its sha256 against the
-release's `SHA256SUMS` before keeping it. A mismatch deletes nothing and installs nothing. If no
-binary can be found the launcher says so and exits 1.
+On any other platform the launcher says so and exits 1; use cargo or install.sh.
 
 - `MZ_BIN=/path/to/mz` runs that binary instead. If the path does not exist it is an error.
-- `MZ_SKIP_DOWNLOAD=1` forbids the download fallback.
-- `MZ_DOWNLOAD_BASE` points the fallback at a mirror. Files are read from `<base>/v<version>/`.
+  (`MZIZI_BIN` still works, deprecated.)
 
 ## cargo
 
@@ -50,7 +48,7 @@ Installs `mz`, and `mzizi` and `fundi`, the old names, which print a deprecation
 ## install.sh
 
 Installs the release binary to `~/.local/bin` (or `$MZ_INSTALL_DIR`). It never uses sudo, and it
-refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.0.2` pins a
+refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.14.0` pins a
 version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Windows use npm or cargo.
 
 ## Homebrew
@@ -61,10 +59,9 @@ version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Wi
 
 Nothing is published and no tag exists. To make the first release:
 
-1. npm: the `@nyuchi` scope must exist, and each of the eight packages (the launcher and seven
-   platform packages) needs this repository and `release.yml` set as its trusted publisher on
-   npmjs.com. New package names can only be configured after a first publish or by creating the
-   package from a granted token once; decide how to bootstrap them.
+1. npm: the `@nyuchi` scope exists; set this repository and `release.yml` as the trusted publisher of
+   the one package `@nyuchi/mzizi-cli` on npmjs.com (it already exists at 0.13.0, so this is a
+   settings change, not a bootstrap).
 2. crates.io: own the `mzizi-cli` name; add a `CARGO_REGISTRY_TOKEN` secret to a `release`
    environment (or move to crates.io trusted publishing).
 3. A `release` environment in this repository, with the approval rules you want.
