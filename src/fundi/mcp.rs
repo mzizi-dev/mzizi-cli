@@ -115,10 +115,10 @@ fn find_sse_message(body: &str, id: u64) -> Option<Value> {
     let mut data = String::new();
     let mut found = None;
     let mut flush = |data: &mut String| {
-        if let Ok(v) = serde_json::from_str::<Value>(data) {
-            if v.get("id").and_then(Value::as_u64) == Some(id) {
-                found = Some(v);
-            }
+        if let Ok(v) = serde_json::from_str::<Value>(data)
+            && v.get("id").and_then(Value::as_u64) == Some(id)
+        {
+            found = Some(v);
         }
         data.clear();
     };

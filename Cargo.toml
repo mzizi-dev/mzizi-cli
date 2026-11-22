@@ -2,7 +2,7 @@
 name = "mzizi-cli"
 version = "0.14.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 description = "The Mzizi CLI: `mzizi add` installs registry components from api.mzizi.dev, plus check, explore and the fundi plan agent."
 license = "Apache-2.0"
 repository = "https://github.com/mzizi-dev/mzizi-cli"
@@ -33,11 +33,6 @@ path = "src/bin/fundi.rs"
 
 [dependencies]
 base64 = "0.23"
-keyring = { version = "3", default-features = false, features = [
-    "apple-native",
-    "windows-native",
-    "linux-native",
-] }
 mzizi-lang-compiler = { version = "0.18.0", default-features = false }
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = [
@@ -48,7 +43,24 @@ reqwest = { version = "0.13", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+zeroize = "1"
 url = "2"
+
+# The OS keychain, per platform. macOS and Windows: `keyring` 3. Linux: the Secret Service
+# (GNOME Keyring, KeePassXC, KWallet) over D-Bus through `secret-service` 6 (zbus 6, pure
+# Rust, RustCrypto: no libdbus, no OpenSSL, so the musl builds keep working), not the
+# kernel keyutils store, which is memory-only and would lose a "saved" sign-in at reboot.
+# `keyring` 4 and `secret-service` 5 sit on zbus 4/5, whose zbus_names and zvariant carry
+# RUSTSEC unmaintained notices (deny.toml takes no ignores). With no Secret Service the
+# token store falls back to the 0600 file.
+[target.'cfg(any(target_os = "macos", windows))'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+secret-service = { version = "6", features = ["crypto-rust"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", default-features = false, features = ["std", "process"] }
 
 [dev-dependencies]
 tempfile = "3"

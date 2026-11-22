@@ -21,7 +21,7 @@ agent. Apache-2.0. A Bundu Foundation project.
   same program, print a deprecation note, and keep `check` meaning `floor`.
 - Environment: `MZ_MCP_URL`, `MZ_MODEL`, `MZ_AUTH_TOKEN` (the old `MZIZI_*` names still
   work, deprecated). `ANTHROPIC_API_KEY` and `WORKOS_ACCESS_TOKEN` are external names.
-- Sign-in token: OS keychain when available, else `$XDG_CONFIG_HOME/mz/auth.json`.
+- Sign-in token: OS keychain when available (macOS Keychain, Windows Credential Manager, or the Linux Secret Service over D-Bus), else `$XDG_CONFIG_HOME/mz/auth.json` (mode 0600). A headless Linux box has no keychain, so it uses the file.
 
 ## Install
 
