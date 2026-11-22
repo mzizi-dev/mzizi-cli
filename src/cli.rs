@@ -61,7 +61,6 @@ pub fn main_with(invoked_as: &str, argv: Vec<String>) -> i32 {
     };
     io.env.0.insert("MZ_INVOKED_AS".into(), invoked_as.clone());
     if invoked_as != "mz" {
-        use std::io::Write;
         let _ = writeln!(
             io.err,
             "note: `{invoked_as}` is now `mz`; this name stays for one release."
@@ -71,7 +70,6 @@ pub fn main_with(invoked_as: &str, argv: Vec<String>) -> i32 {
         Ok(()) => 0,
         Err(CliError::CheckFailed) => 1,
         Err(CliError::Msg(m)) => {
-            use std::io::Write;
             let _ = writeln!(io.err, "error: {m}");
             1
         }
