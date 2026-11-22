@@ -55,16 +55,29 @@ version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Wi
 
 `packaging/homebrew/mz.rb` is a draft formula. It needs a tap and real checksums from a release.
 
+## How a release runs
+
+1. Push the tag `v<version>` (it must equal `version` in `Cargo.toml` and `npm/package.json`).
+2. The workflow builds all 7 targets, writes `SHA256SUMS`, stages the one npm package and drafts the GitHub release.
+3. It publishes the crate to crates.io (the `release` environment, the org `CARGO_REGISTRY_TOKEN`).
+4. Only then does it run `npm stage publish --provenance` over OIDC. The npm trusted publisher allows
+   staging only: no `npm publish` and no `npm dist-tag`, so the workflow does neither. The version waits in
+   npm's stage queue.
+5. You approve the staged version with 2FA, on npmjs.com (Staged Packages tab, Approve) or with
+   `npm stage list @nyuchi/mzizi-cli` then `npm stage approve <stage-id>`. Approval publishes it and publishes it
+   under the `latest` tag. The tag is fixed when the version is staged (`npm stage publish` defaults it to
+   `latest`), so the workflow needs no `npm dist-tag` step.
+6. You publish the draft GitHub release. Then the Homebrew formula's checksums.
+
+To discard a staged version (a bad build, a failed run): reject it with `npm stage reject <stage-id>` or on npmjs.com (Staged Packages tab, Reject); both ask for 2FA. To
+inspect it first: `npm stage view <stage-id>` or `npm stage download <stage-id>`. Staging needs npm 11.15.0 or newer
+and Node 22.14.0 or newer, which the workflow installs; staged publishing is documented at
+<https://docs.npmjs.com/staged-publishing>.
+
 ## Release setup (for the owner)
 
-Nothing is published and no tag exists. To make the first release:
-
-1. npm: the `@nyuchi` scope exists; set this repository and `release.yml` as the trusted publisher of
-   the one package `@nyuchi/mzizi-cli` on npmjs.com (it already exists at 0.13.0, so this is a
-   settings change, not a bootstrap).
-2. crates.io: own the `mzizi-cli` name; add a `CARGO_REGISTRY_TOKEN` secret to a `release`
-   environment (or move to crates.io trusted publishing).
-3. A `release` environment in this repository, with the approval rules you want.
-4. Tag `v<version>` after the version in `Cargo.toml` and `npm/package.json` match. The workflow
-   builds every target, drafts the GitHub release (publish the draft yourself), then publishes.
-5. The Homebrew tap repository, and the formula's real checksums.
+1. npm: set this repository, the workflow `release.yml` and the environment `release` as the trusted publisher of
+   `@nyuchi/mzizi-cli`, with "Allow npm publish" and "Allow npm dist-tag" unchecked (stage only).
+2. crates.io: own the `mzizi-cli` name. The org secret `CARGO_REGISTRY_TOKEN` is already visible to this repository.
+3. The `release` environment is created on first use; add approval rules if you want them.
+4. The Homebrew tap repository, and the formula's real checksums.

@@ -202,8 +202,11 @@ jobs:
         run: cargo publish --locked # zizmor: ignore[use-trusted-publishing]
 
   publish-npm:
-    name: Publish to npm
-    needs: [version, package, github-release]
+    name: Stage on npm
+    # After crates.io on purpose: a failed build or crates.io step must not leave a staged npm
+    # version waiting for approval. (A crates.io publish cannot be undone; a staged version can
+    # be rejected.)
+    needs: [version, package, github-release, publish-crates]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -221,9 +224,13 @@ jobs:
         with:
           package-manager-cache: false
           node-version: "22"
-      - name: Install npm with trusted publishing support
-        # Trusted publishing needs npm 11.5.1 or newer, newer than the runner's.
-        run: npm install -g npm@^11.5.1 # zizmor: ignore[adhoc-packages]
-      - name: Publish the one package (every platform binary is inside it)
+      - name: Install an npm that can stage
+        # `npm stage publish` needs npm 11.15.0 or newer and Node 22.14.0 or newer; the runner's
+        # npm is older.
+        run: npm install -g npm@^11.15.0 # zizmor: ignore[adhoc-packages]
+      # The trusted publisher on npmjs.com allows staging only (no direct publish, no dist-tag), so
+      # this submits the version to the stage queue. The owner approves it with 2FA; the registry
+      # applies the default tag then. Provenance is generated for staged packages as for direct ones.
+      - name: Stage the one package (every platform binary is inside it)
         working-directory: stage
-        run: npm publish --access public --provenance
+        run: npm stage publish --access public --provenance
