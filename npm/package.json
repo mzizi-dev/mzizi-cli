@@ -1,0 +1,45 @@
+{
+  "name": "@nyuchi/mzizi-cli",
+  "version": "0.0.2",
+  "description": "The Mzizi CLI. A launcher that runs the Rust `mz` binary (mz add, floor, explore, plan). Install with npx, npm i -g or pnpm dlx.",
+  "homepage": "https://mzizi.dev",
+  "bugs": {
+    "url": "https://github.com/mzizi-dev/mzizi-cli/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mzizi-dev/mzizi-cli.git",
+    "directory": "npm"
+  },
+  "bin": {
+    "fundi": "bin/mz.js",
+    "mz": "bin/mz.js",
+    "mzizi": "bin/mz.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "scripts",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "test": "node --test test/launcher.test.js test/stage.test.js"
+  },
+  "optionalDependencies": {
+    "@nyuchi/mzizi-cli-darwin-arm64": "0.0.2",
+    "@nyuchi/mzizi-cli-darwin-x64": "0.0.2",
+    "@nyuchi/mzizi-cli-linux-arm64-gnu": "0.0.2",
+    "@nyuchi/mzizi-cli-linux-arm64-musl": "0.0.2",
+    "@nyuchi/mzizi-cli-linux-x64-gnu": "0.0.2",
+    "@nyuchi/mzizi-cli-linux-x64-musl": "0.0.2",
+    "@nyuchi/mzizi-cli-win32-x64": "0.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

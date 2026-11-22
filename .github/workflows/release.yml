@@ -1,0 +1,230 @@
+name: Release
+
+# DRAFT. Builds `mz` for every platform, writes SHA256SUMS, stages the npm packages and,
+# only on a real tag, drafts the GitHub release and publishes to crates.io and npm.
+#
+#   * A pushed tag v<version> is a real release. The tag must match Cargo.toml and
+#     npm/package.json, or the run stops before building.
+#   * A manual run (workflow_dispatch) is a dry run unless dry_run is turned off AND the run
+#     is on a tag. A dry run builds and stages and uploads the result as workflow artifacts;
+#     it publishes and releases nothing.
+#   * Nothing here has ever run for real. No tag exists. Publishing needs the owner's setup
+#     (see docs/install.md, "Release setup").
+#
+# npm auth is trusted publishing (OIDC): no NPM_TOKEN. Each of the eight npm packages needs
+# this repository and this workflow file registered as its trusted publisher on npmjs.com.
+# crates.io uses the CARGO_REGISTRY_TOKEN secret.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and stage only; publish and release nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    name: Version check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: v
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          cargo_v=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          npm_v=$(node -p "require('./npm/package.json').version")
+          [ "$cargo_v" = "$npm_v" ] || { echo "::error::Cargo.toml says $cargo_v but npm/package.json says $npm_v"; exit 1; }
+          publish=false
+          if [ "$REF_TYPE" = "tag" ]; then
+            [ "$REF_NAME" = "v$cargo_v" ] || { echo "::error::tag $REF_NAME does not match version $cargo_v"; exit 1; }
+            if [ "$EVENT" = "push" ] || [ "$DRY_RUN" = "false" ]; then publish=true; fi
+          fi
+          echo "version=$cargo_v" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "version $cargo_v, publish=$publish"
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - {target: aarch64-apple-darwin, os: macos-14}
+          - {target: x86_64-apple-darwin, os: macos-15-intel}
+          - {target: x86_64-unknown-linux-gnu, os: ubuntu-24.04}
+          - {target: x86_64-unknown-linux-musl, os: ubuntu-24.04, musl: true}
+          - {target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm}
+          - {target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, musl: true}
+          - {target: x86_64-pc-windows-msvc, os: windows-2022, ext: .exe}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: musl toolchain
+        if: matrix.musl
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends musl-tools
+      - name: Build
+        shell: bash
+        run: cargo build --release --locked --target "${{ matrix.target }}" --bin mz
+      - name: Smoke-test the binary where it can run
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          out=$("target/${{ matrix.target }}/release/mz${{ matrix.ext }}" --version)
+          [ "$out" = "$VERSION" ] || { echo "::error::mz --version printed '$out'"; exit 1; }
+      - name: Name the asset
+        shell: bash
+        run: |
+          mkdir dist
+          cp "target/${{ matrix.target }}/release/mz${{ matrix.ext }}" "dist/mz-${{ matrix.target }}${{ matrix.ext }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mz-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  package:
+    name: Checksums and npm staging
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mz-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          package-manager-cache: false
+          node-version: "22"
+      - name: SHA256SUMS
+        working-directory: dist
+        run: sha256sum mz-* | tee SHA256SUMS
+      - name: Stage the npm packages
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          node scripts/stage-npm.mjs --version "$VERSION" --bin-dir dist --out stage --checksums dist/SHA256SUMS
+          for d in stage/*/; do (cd "$d" && npm pack --dry-run >/dev/null); done
+      - name: Launcher tests
+        run: node --test npm/test/launcher.test.js npm/test/stage.test.js
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-dist
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-npm-stage
+          path: stage
+          if-no-files-found: error
+
+  github-release:
+    name: Draft GitHub release
+    needs: [version, package]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-dist
+          path: dist
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: gh release create "$TAG" dist/* --repo "$REPO" --draft --verify-tag --title "$TAG" --generate-notes
+
+  publish-crates:
+    name: Publish to crates.io
+    needs: [version, package, github-release]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        # crates.io trusted publishing is not set up for this crate; the owner decides.
+        run: cargo publish --locked # zizmor: ignore[use-trusted-publishing]
+
+  publish-npm:
+    name: Publish to npm
+    needs: [version, package, github-release]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      id-token: write # npm trusted publishing (OIDC) and provenance
+      contents: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-npm-stage
+          path: stage
+      # No registry-url: the OIDC token must be npm's only credential.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          package-manager-cache: false
+          node-version: "22"
+      - name: Install npm with trusted publishing support
+        # Trusted publishing needs npm 11.5.1 or newer, newer than the runner's.
+        run: npm install -g npm@^11.5.1 # zizmor: ignore[adhoc-packages]
+      - name: Publish the platform packages, then the launcher
+        run: |
+          set -euo pipefail
+          for d in stage/*/; do
+            case "$d" in stage/launcher/) continue ;; esac
+            (cd "$d" && npm publish --access public --provenance)
+          done
+          (cd stage/launcher && npm publish --access public --provenance)

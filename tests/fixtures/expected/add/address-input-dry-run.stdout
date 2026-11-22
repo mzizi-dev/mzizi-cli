@@ -1,0 +1,12 @@
+mz add address-input — target tsx
+
+2 registry item(s), 1 pulled in as dependencies
+  - input  (required by address-input)
+  - address-input
+
+2 file(s):
+  create        components/ui/input.tsx  (1939 bytes, from input)
+  create        components/ui/address-input.tsx  (3714 bytes, from address-input)
+
+
+Dry run — nothing was written.
