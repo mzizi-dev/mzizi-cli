@@ -1,0 +1,47 @@
+# AGENTS.md, "Changelog": every pull request adds a CHANGELOG.md entry under
+# `## [Unreleased]` (owner rule, 2026-10-07). This job fails one that does not touch
+# CHANGELOG.md. The `no-changelog` label exempts one, as does a Dependabot version bump.
+#
+# Not a required check: it is deliberately left out of branch protection (owner rule of
+# 2026-09-30). The check publishes as `changelog / entry required`, the job's own name.
+
+on:
+  pull_request:
+    # Labels change the verdict, so a label added or removed re-runs the job.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    # As ci.yml: stacked pull requests target the branch below them.
+    branches: [main]
+  # Required checks must also report on a merge queue's gh-readonly-queue/** ref, or a queued
+  # PR waits until the queue times it out. Harmless where no queue is configured.
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: changelog-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  entry:
+    name: changelog / entry required
+    # PR metadata only (the PR's base and head, its labels and author): a merge queue
+    # group has none of it, and the PR already passed this check to be queued. A skipped
+    # job counts as passed.
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The base and head commits, and their merge base, must be present to diff.
+          fetch-depth: 0
+
+      - name: Check for a CHANGELOG.md entry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          NO_CHANGELOG: ${{ contains(github.event.pull_request.labels.*.name, 'no-changelog') }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: .github/scripts/changelog-entry.sh "$BASE_SHA" "$HEAD_SHA"

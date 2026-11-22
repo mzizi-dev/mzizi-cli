@@ -1,4 +1,4 @@
-mzizi (fundi) — the Mzizi architecture agent (nyuchi brand)
+mz — the Mzizi CLI: registry installs, the Bundu floor check and the fundi architecture agent
 
 The agent reads the Mzizi design system (its skills + the live registry MCP) and
 helps you explore a project and plan the minimal edits to align it.
@@ -8,7 +8,7 @@ and `chat` need no account. Only the Fundi tools (fundi and the Fundi issue
 desk) need a Mzizi console user, which is what `login` is for.
 
 USAGE
-  fundi <command> [args]
+  mz <command> [args]
 
 COMMANDS
   add <name...>            Install Mzizi component(s) from the registry into
@@ -16,7 +16,7 @@ COMMANDS
                            registry serves: Mzizi first, TypeScript second,
                            native (Swift, Kotlin) where they exist. No API key
                            and no sign-in — the component registry is public.
-  check [path...]          Enforce the Bundu spacing floor (14px inset, 7px
+  floor [path...]          Enforce the Bundu spacing floor (14px inset, 7px
                            gaps, 1.5 leading) on CSS, TSX and the other files
                            that carry classes or styles. Offline, no sign-in.
                            Exits non-zero when anything is below the floor.
@@ -46,7 +46,7 @@ OPTIONS FOR `add`
   --dry-run                Print the plan and write nothing.
   --overwrite              Replace files that already exist. Off by default.
 
-OPTIONS FOR `check`
+OPTIONS FOR `floor`
   --json                   Print one machine-readable JSON report on stdout
                            (violations with file, line, column, rule, found,
                            minimum and value; exempted; notices; ok).
@@ -70,22 +70,28 @@ ENVIRONMENT
                            calling Claude itself, and `chat` points you at
                            the agent already running it. Set this key for the
                            original behaviour: fundi plans/chats on its own.
-  MZIZI_MCP_URL            MCP endpoint. Default: https://mcp.mzizi.dev/mcp
-  MZIZI_MODEL              Anthropic model id. Default: claude-sonnet-5
+  MZ_MCP_URL               MCP endpoint. Default: https://mcp.mzizi.dev/mcp
+  MZ_MODEL                 Anthropic model id. Default: claude-sonnet-5
+  (MZIZI_MCP_URL and MZIZI_MODEL still work, deprecated.)
   WORKOS_ACCESS_TOKEN      Console token for the Fundi tools (or use `login`).
                            Nothing else needs it.
 
+NOTE
+  `mz check` belongs to the language compiler (mzizi-dev/mzizi) and arrives here
+  with it; the spacing-floor check is `mz floor`. Under the old names `mzizi`
+  and `fundi`, `check` still means `floor`.
+
 EXAMPLES
-  mzizi add button --type mzizi
-  mzizi add button --type tsx
-  mzizi add app-data-table --type astro
-  mzizi add mzizi-tokens-swift
-  mzizi add button
-  mzizi add address-input --dry-run
-  mzizi check src
-  mzizi check --json --exclude src/legacy > spacing.json
-  fundi explore
-  fundi login --token "$WORKOS_ACCESS_TOKEN"
-  fundi whoami
-  fundi plan "add the Mzizi token layer and a button"
-  fundi chat "what is the nyuchi mineral palette?"
+  mz add button --type mzizi
+  mz add button --type tsx
+  mz add app-data-table --type astro
+  mz add mzizi-tokens-swift
+  mz add button
+  mz add address-input --dry-run
+  mz floor src
+  mz floor --json --exclude src/legacy > spacing.json
+  mz explore
+  mz login --token "$WORKOS_ACCESS_TOKEN"
+  mz whoami
+  mz plan "add the Mzizi token layer and a button"
+  mz chat "what is the nyuchi mineral palette?"
