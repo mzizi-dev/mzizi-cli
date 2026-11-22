@@ -1,0 +1,16 @@
+mz add button — target tsx
+
+2 registry item(s), 1 pulled in as dependencies
+  - ui-variants  (required by button)
+  - button
+
+2 file(s):
+  create        lib/ui-variants.ts  (14593 bytes, from ui-variants)
+  create        components/ui/button.tsx  (2277 bytes, from button)
+
+npm dependencies: class-variance-authority, radix-ui
+
+Wrote 2 file(s).
+
+Still to do — add the npm dependencies:
+  npm install class-variance-authority radix-ui

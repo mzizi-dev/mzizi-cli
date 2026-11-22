@@ -1,0 +1,53 @@
+{
+  "version": "0.24.0",
+  "skills": [
+    {
+      "name": "mzizi-language",
+      "file": "mzizi-language/SKILL.md"
+    },
+    {
+      "name": "mzizi-roots",
+      "file": "mzizi-roots/SKILL.md"
+    },
+    {
+      "name": "mzizi-design",
+      "file": "mzizi-design/SKILL.md"
+    },
+    {
+      "name": "mukoko-design",
+      "file": "mukoko-design/SKILL.md"
+    },
+    {
+      "name": "mzizi-backend",
+      "file": "mzizi-backend/SKILL.md"
+    },
+    {
+      "name": "mzizi-architecture",
+      "file": "mzizi-architecture/SKILL.md"
+    },
+    {
+      "name": "discoverability",
+      "file": "discoverability/SKILL.md"
+    },
+    {
+      "name": "digital-hygiene",
+      "file": "digital-hygiene/SKILL.md"
+    },
+    {
+      "name": "progress-report",
+      "file": "progress-report/SKILL.md"
+    },
+    {
+      "name": "ship-release",
+      "file": "ship-release/SKILL.md"
+    },
+    {
+      "name": "registry-propagation",
+      "file": "registry-propagation/SKILL.md"
+    },
+    {
+      "name": "pr-gates",
+      "file": "pr-gates/SKILL.md"
+    }
+  ]
+}

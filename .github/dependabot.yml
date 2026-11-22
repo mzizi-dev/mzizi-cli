@@ -1,0 +1,38 @@
+# Dependabot version updates, on main (this repo has no staging branch).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    schedule:
+      interval: weekly
+      day: monday
+    # A new release waits a week before Dependabot proposes it.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+  - package-ecosystem: cargo
+    directory: /
+    # The language compiler is a git dependency pinned by tag; Dependabot reads the newest
+    # *tag name* it sees, which once proposed a downgrade (v0.14.2 over v0.17.0, #5). It moves
+    # by hand until the crate is on crates.io.
+    ignore:
+      - dependency-name: "mzizi-lang-compiler"
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      cargo:
+        patterns: ["*"]
+    commit-message:
+      prefix: build

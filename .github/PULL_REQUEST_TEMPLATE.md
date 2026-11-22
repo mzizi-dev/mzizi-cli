@@ -55,20 +55,14 @@ Closes #
 ### Process
 
 - [ ] My PR **title** follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
-- [ ] All of my commits are **signed** and show "Verified" on GitHub
-      (GPG or SSH). See
-      [CONTRIBUTING.md § Signed commits](https://github.com/nyuchi/.github/blob/main/CONTRIBUTING.md#signed-commits-required).
-- [ ] All of my commits have a **DCO sign-off** (`Signed-off-by:` trailer,
-      added by `git commit -s`).
 - [ ] My branch name follows `<type>/<short-kebab-description>` (see
       [CONTRIBUTING.md § Branch naming](https://github.com/nyuchi/.github/blob/main/CONTRIBUTING.md#branch-naming)).
-- [ ] I have **rebased** onto the latest default branch; no merge commits
-      from the base branch in this PR.
+- [ ] My branch is up to date with `main`.
 - [ ] I have added or updated **tests** covering the change (or explained
       below why tests aren't applicable).
 - [ ] I have updated **documentation** (README, inline docs, changelog,
       migration notes) where relevant.
-- [ ] I ran the repo's local checks (lint, typecheck, tests) and they pass.
+- [ ] I ran `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`, and they pass.
 - [ ] Any new **runtime dependencies** are justified in this PR description
       (name, version, license, why).
 - [ ] If this is a breaking change, I have marked the box above and

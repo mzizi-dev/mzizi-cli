@@ -1,0 +1,97 @@
+mz — the Mzizi CLI: registry installs, the Bundu floor check and the fundi architecture agent
+
+The agent reads the Mzizi design system (its skills + the live registry MCP) and
+helps you explore a project and plan the minimal edits to align it.
+
+The CLI and the mzizi-mcp server are free, with no sign-in: `explore`, `plan`
+and `chat` need no account. Only the Fundi tools (fundi and the Fundi issue
+desk) need a Mzizi console user, which is what `login` is for.
+
+USAGE
+  mz <command> [args]
+
+COMMANDS
+  add <name...>            Install Mzizi component(s) from the registry into
+                           this project, with their dependencies. Every type the
+                           registry serves: Mzizi first, TypeScript second,
+                           native (Swift, Kotlin) where they exist. No API key
+                           and no sign-in — the component registry is public.
+  floor [path...]          Enforce the Bundu spacing floor (14px inset, 7px
+                           gaps, 1.5 leading) on CSS, TSX and the other files
+                           that carry classes or styles. Offline, no sign-in.
+                           Exits non-zero when anything is below the floor.
+  explore                  Inspect the current project and print its snapshot
+                           (offline — no API key, no auth needed).
+  plan <goal...>           Plan the minimal Mzizi-aligned edits for <goal>.
+                           Read-only: prints the steps as a dry run, writes nothing.
+                           Without ANTHROPIC_API_KEY it prints a summary: the
+                           project snapshot plus each matching skill's name and
+                           one-line description. --full prints those skills in
+                           full; `plan --skill <name>` prints one.
+  chat <message...>        One-shot chat with Fundi, scoped to Mzizi doctrine.
+  login [--token <jwt>]    Save a console access token, for the Fundi tools only.
+  logout                   Remove the saved token.
+  whoami                   Print the identity of the saved/active token.
+  help, --help, -h         Show this help.
+  version, --version, -v   Print the CLI version.
+
+OPTIONS FOR `add`
+  --type <mzizi|tsx|astro|swift|kotlin>
+                           Which type to install (--target is the same flag;
+                           rust is an alias of mzizi, typescript of tsx). When
+                           omitted the type comes from the project, then from
+                           the only type the component has. A component with
+                           several types and no signal on disk is refused with
+                           the list of its types, never guessed.
+  --dry-run                Print the plan and write nothing.
+  --overwrite              Replace files that already exist. Off by default.
+
+OPTIONS FOR `floor`
+  --json                   Print one machine-readable JSON report on stdout
+                           (violations with file, line, column, rule, found,
+                           minimum and value; exempted; notices; ok).
+  --exclude <path>         Leave out a file or directory (repeatable).
+                           node_modules, dist, build, .git and the other
+                           build outputs are always skipped.
+  --spacing-unit <px>      Pixels per Tailwind spacing step. Default 4.
+  --rem <px>               Pixels per rem and em. Default 16.
+  Findings: p-0, px-1, padding-left: 4px, gap-0, gap-1.5, space-x-1,
+  negative margins, leading-none, line-height: 1.2. Excuse one on the same or
+  the previous line with a comment: mzizi-spacing-exempt: <reason> (a reason
+  is required). mzizi-spacing-exempt-file: <reason> in the first 20 lines
+  excuses a file.
+
+ENVIRONMENT
+  ANTHROPIC_API_KEY        Optional. Like tsc or a linter, fundi assumes it is
+                           usually run BY a coding agent that already has its
+                           own model access — so without this key, `plan`
+                           gathers context (project snapshot + relevant Mzizi
+                           skills) for that agent to plan from instead of
+                           calling Claude itself, and `chat` points you at
+                           the agent already running it. Set this key for the
+                           original behaviour: fundi plans/chats on its own.
+  MZ_MCP_URL               MCP endpoint. Default: https://mcp.mzizi.dev/mcp
+  MZ_MODEL                 Anthropic model id. Default: claude-sonnet-5
+  (MZIZI_MCP_URL and MZIZI_MODEL still work, deprecated.)
+  WORKOS_ACCESS_TOKEN      Console token for the Fundi tools (or use `login`).
+                           Nothing else needs it.
+
+NOTE
+  `mz check` belongs to the language compiler (mzizi-dev/mzizi) and arrives here
+  with it; the spacing-floor check is `mz floor`. Under the old names `mzizi`
+  and `fundi`, `check` still means `floor`.
+
+EXAMPLES
+  mz add button --type mzizi
+  mz add button --type tsx
+  mz add app-data-table --type astro
+  mz add mzizi-tokens-swift
+  mz add button
+  mz add address-input --dry-run
+  mz floor src
+  mz floor --json --exclude src/legacy > spacing.json
+  mz explore
+  mz login --token "$WORKOS_ACCESS_TOKEN"
+  mz whoami
+  mz plan "add the Mzizi token layer and a button"
+  mz chat "what is the nyuchi mineral palette?"
