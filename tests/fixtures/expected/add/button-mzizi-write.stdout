@@ -1,0 +1,13 @@
+mz add button — target mzizi
+
+1 registry item(s)
+  - button
+
+No files to write.
+
+crate dependency: mzizi-ui (crates.io)
+
+Wrote 0 file(s).
+
+Still to do — add the crate dependency:
+  cargo add mzizi-ui

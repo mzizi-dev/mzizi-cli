@@ -1,0 +1,12 @@
+mz add button — target mzizi
+
+1 registry item(s)
+  - button
+
+No files to write.
+
+crate dependency: mzizi-ui (crates.io)
+
+Dry run — nothing would be written: this target writes no files.
+Would tell you to run:
+  cargo add mzizi-ui
