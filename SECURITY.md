@@ -1,6 +1,6 @@
 # Security policy
 
-Report a vulnerability to **security@nyuchi.com**. Do not open a public issue for it.
+Report a vulnerability to **<security@nyuchi.com>**. Do not open a public issue for it.
 
 What `mz` does that matters for security: it writes files into the current project
 (component files from api.mzizi.dev; path traversal is rejected and existing files are

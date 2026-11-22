@@ -52,7 +52,7 @@ function parseSums(text) {
  * is not written in that case). Returns the installed path.
  */
 async function downloadBinary({ version, row, platform, env = process.env, root, fetch = fetchBytes }) {
-  const base = (env.MZIZI_DOWNLOAD_BASE || DEFAULT_BASE).replace(/\/$/, '')
+  const base = (env.MZ_DOWNLOAD_BASE || DEFAULT_BASE).replace(/\/$/, '')
   const dir = `${base}/v${version}`
   const asset = `mz-${row.triple}${platform === 'win32' ? '.exe' : ''}`
   const sums = parseSums((await fetch(`${dir}/SHA256SUMS`)).toString('utf8'))

@@ -9,12 +9,12 @@ const PKG_ROOT = path.resolve(__dirname, '..')
 const vendorDir = (root = PKG_ROOT) => path.join(root, 'vendor')
 
 /**
- * Find the Rust binary. Order: MZIZI_BIN, the per-platform optional dependency,
+ * Find the Rust binary. Order: MZ_BIN, the per-platform optional dependency,
  * a previously downloaded copy. Returns { path, source } or { path: null, reason }.
  * Every input is injectable so the matrix is testable without the real platform.
  */
 function resolveBinary(opts = {}) {
-  const env = opts.env || process.env
+  let env = opts.env || process.env
   const platform = opts.platform || process.platform
   const arch = opts.arch || process.arch
   const libc = opts.libc || (platform === 'linux' ? detectLibc(opts.report) : undefined)
@@ -22,11 +22,16 @@ function resolveBinary(opts = {}) {
   const resolvePkg = opts.resolvePackage || ((id) => require.resolve(id, { paths: [PKG_ROOT] }))
   const root = opts.root || PKG_ROOT
 
-  if (env.MZIZI_BIN) {
-    if (!exists(env.MZIZI_BIN)) {
-      return { path: null, reason: `MZIZI_BIN is set to ${env.MZIZI_BIN}, which does not exist` }
+  if (!env.MZ_BIN && env.MZIZI_BIN) {
+    // Deprecated name, honoured for one release.
+    process.stderr.write('warning: MZIZI_BIN is deprecated, use MZ_BIN\n')
+    env = { ...env, MZ_BIN: env.MZIZI_BIN }
+  }
+  if (env.MZ_BIN) {
+    if (!exists(env.MZ_BIN)) {
+      return { path: null, reason: `MZ_BIN is set to ${env.MZ_BIN}, which does not exist` }
     }
-    return { path: env.MZIZI_BIN, source: 'MZIZI_BIN' }
+    return { path: env.MZ_BIN, source: 'MZ_BIN' }
   }
 
   const row = findPlatform({ platform, arch, libc })

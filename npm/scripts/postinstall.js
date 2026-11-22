@@ -5,7 +5,7 @@ const { resolveBinary } = require('../lib/resolve.js')
 const pkg = require('../package.json')
 
 async function run() {
-  if (process.env.MZIZI_SKIP_DOWNLOAD || process.env.MZIZI_BIN) return
+  if (process.env.MZ_SKIP_DOWNLOAD || process.env.MZ_BIN) return
   const found = resolveBinary()
   if (found.path || !found.row) return
   const { downloadBinary } = require('../lib/download.js')

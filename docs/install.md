@@ -35,9 +35,9 @@ downloads the release binary at install time or on first run and checks its sha2
 release's `SHA256SUMS` before keeping it. A mismatch deletes nothing and installs nothing. If no
 binary can be found the launcher says so and exits 1.
 
-- `MZIZI_BIN=/path/to/mz` runs that binary instead. If the path does not exist it is an error.
-- `MZIZI_SKIP_DOWNLOAD=1` forbids the download fallback.
-- `MZIZI_DOWNLOAD_BASE` points the fallback at a mirror. Files are read from `<base>/v<version>/`.
+- `MZ_BIN=/path/to/mz` runs that binary instead. If the path does not exist it is an error.
+- `MZ_SKIP_DOWNLOAD=1` forbids the download fallback.
+- `MZ_DOWNLOAD_BASE` points the fallback at a mirror. Files are read from `<base>/v<version>/`.
 
 ## cargo
 
@@ -49,8 +49,8 @@ Installs `mz`, and `mzizi` and `fundi`, the old names, which print a deprecation
 
 ## install.sh
 
-Installs the release binary to `~/.local/bin` (or `$MZIZI_INSTALL_DIR`). It never uses sudo, and it
-refuses to install when the sha256 in `SHA256SUMS` does not match. `MZIZI_VERSION=0.14.0` pins a
+Installs the release binary to `~/.local/bin` (or `$MZ_INSTALL_DIR`). It never uses sudo, and it
+refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.14.0` pins a
 version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Windows use npm or cargo.
 
 ## Homebrew

@@ -95,6 +95,7 @@ fn run_with(fetch: &dyn Fetch, dir: &Path, args: &[&str]) -> Run {
         result: result.map_err(|e| match e {
             CliError::Msg(m) => m,
             CliError::CheckFailed => "check failed".into(),
+            CliError::Exit(c) => format!("exit {c}"),
         }),
     }
 }

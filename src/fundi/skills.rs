@@ -19,11 +19,11 @@ fn fallback() -> Vec<Skill> {
     vec![
         Skill {
             name: "mzizi-component-install".into(),
-            body: include_str!("fallback-mzizi-component-install.md").into(),
+            body: include_str!("fallback-mzizi-component-install.txt").into(),
         },
         Skill {
             name: "mzizi-tokens".into(),
-            body: include_str!("fallback-mzizi-tokens.md").into(),
+            body: include_str!("fallback-mzizi-tokens.txt").into(),
         },
     ]
 }

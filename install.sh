@@ -4,10 +4,10 @@
 #   curl -fsSL https://raw.githubusercontent.com/mzizi-dev/mzizi-cli/main/install.sh | sh
 #
 # Environment:
-#   MZIZI_VERSION        a version such as 0.14.0 (default: the latest release)
-#   MZIZI_INSTALL_DIR    where to put mz (default: $HOME/.local/bin). Never uses sudo.
-#   MZIZI_DOWNLOAD_BASE  release host, for mirrors and tests. Assets are read from
-#                        <base>/v<version>/ (needs MZIZI_VERSION). file:// works.
+#   MZ_VERSION        a version such as 0.14.0 (default: the latest release)
+#   MZ_INSTALL_DIR    where to put mz (default: $HOME/.local/bin). Never uses sudo.
+#   MZ_DOWNLOAD_BASE  release host, for mirrors and tests. Assets are read from
+#                        <base>/v<version>/ (needs MZ_VERSION). file:// works.
 set -eu
 
 REPO="mzizi-dev/mzizi-cli"
@@ -41,16 +41,16 @@ esac
 asset="mz-$triple"
 
 # Where do the release files live?
-if [ -n "${MZIZI_DOWNLOAD_BASE:-}" ]; then
-  [ -n "${MZIZI_VERSION:-}" ] || die "MZIZI_DOWNLOAD_BASE needs MZIZI_VERSION"
-  url="${MZIZI_DOWNLOAD_BASE%/}/v${MZIZI_VERSION#v}"
-elif [ -n "${MZIZI_VERSION:-}" ]; then
-  url="https://github.com/$REPO/releases/download/v${MZIZI_VERSION#v}"
+if [ -n "${MZ_DOWNLOAD_BASE:-}" ]; then
+  [ -n "${MZ_VERSION:-}" ] || die "MZ_DOWNLOAD_BASE needs MZ_VERSION"
+  url="${MZ_DOWNLOAD_BASE%/}/v${MZ_VERSION#v}"
+elif [ -n "${MZ_VERSION:-}" ]; then
+  url="https://github.com/$REPO/releases/download/v${MZ_VERSION#v}"
 else
   url="https://github.com/$REPO/releases/latest/download"
 fi
 
-dir="${MZIZI_INSTALL_DIR:-$HOME/.local/bin}"
+dir="${MZ_INSTALL_DIR:-$HOME/.local/bin}"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT INT TERM
 
@@ -71,8 +71,8 @@ fi
 [ "$got" = "$want" ] || die "checksum mismatch for $asset: expected $want, got $got. Nothing was installed."
 say "sha256 verified: $got"
 
-mkdir -p "$dir" || die "cannot create $dir (set MZIZI_INSTALL_DIR to a directory you own)"
-cp "$work/$asset" "$dir/mz.new" || die "cannot write to $dir (set MZIZI_INSTALL_DIR to a directory you own)"
+mkdir -p "$dir" || die "cannot create $dir (set MZ_INSTALL_DIR to a directory you own)"
+cp "$work/$asset" "$dir/mz.new" || die "cannot write to $dir (set MZ_INSTALL_DIR to a directory you own)"
 chmod 755 "$dir/mz.new"
 mv "$dir/mz.new" "$dir/mz"
 say "Installed $dir/mz"

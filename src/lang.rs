@@ -1,4 +1,5 @@
-//! `mz` — the check loop's entry point.
+//! The language commands of `mz` — the check loop's entry point. Moved here, with history, from
+//! `mzizi-dev/mzizi` `compiler/src/main.rs`; the compiler stays there as a library.
 //!
 //! ```text
 //! mz check <file.mz>            human-readable diagnostics
@@ -35,8 +36,6 @@
 //! §1.6's "`mz check` runs them as part of the loop" is narrowed by RFC-0006 §7 for that
 //! reason.
 
-#![forbid(unsafe_code)]
-
 use std::io::Write;
 use std::process::ExitCode;
 use std::time::Instant;
@@ -50,8 +49,9 @@ use mzizi_lang_compiler::{
     apply_exact_fixes, check, check_contract, check_program, check_with_ast,
 };
 
-fn main() -> ExitCode {
-    let mut args: Vec<String> = std::env::args().skip(1).collect();
+/// Run one language command (`check`, `fix`, `contract`, `outline`, `hash`, `ir`, `build`,
+/// `run`, `harness`, or a bare path meaning `check`). `args` excludes the program name.
+pub fn run_command(mut args: Vec<String>) -> ExitCode {
     if args.first().map(String::as_str) == Some("harness") {
         return harness(&args[1..]);
     }

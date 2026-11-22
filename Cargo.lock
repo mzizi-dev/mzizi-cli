@@ -705,6 +705,7 @@ version = "0.14.0"
 dependencies = [
  "base64",
  "keyring",
+ "mzizi-lang-compiler",
  "regex",
  "reqwest",
  "serde",
@@ -712,6 +713,11 @@ dependencies = [
  "tempfile",
  "url",
 ]
+
+[[package]]
+name = "mzizi-lang-compiler"
+version = "0.0.0"
+source = "git+https://github.com/mzizi-dev/mzizi?tag=v0.17.0#e71f96054d181bc56cec725e265f4f499f9419e0"
 
 [[package]]
 name = "once_cell"

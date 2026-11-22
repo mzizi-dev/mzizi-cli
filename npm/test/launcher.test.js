@@ -62,14 +62,14 @@ test('resolution finds the binary inside the platform package', () => {
   }
 })
 
-test('MZIZI_BIN wins, and a missing MZIZI_BIN is an error, not a fallthrough', () => {
+test('MZ_BIN wins, and a missing MZ_BIN is an error, not a fallthrough', () => {
   const d = tmp()
   const bin = path.join(d, 'my-mz')
   fs.writeFileSync(bin, '')
-  assert.equal(resolveBinary({ env: { MZIZI_BIN: bin }, platform: 'freebsd', arch: 'x64' }).path, bin)
-  const r = resolveBinary({ env: { MZIZI_BIN: path.join(d, 'nope') } })
+  assert.equal(resolveBinary({ env: { MZ_BIN: bin }, platform: 'freebsd', arch: 'x64' }).path, bin)
+  const r = resolveBinary({ env: { MZ_BIN: path.join(d, 'nope') } })
   assert.equal(r.path, null)
-  assert.match(r.reason, /MZIZI_BIN is set to .*nope/)
+  assert.match(r.reason, /MZ_BIN is set to .*nope/)
 })
 
 test('a vendored download is used when the package is absent', () => {
@@ -92,23 +92,23 @@ const runShim = (args, env) =>
   spawnSync(process.execPath, [SHIM, ...args], { env: { ...process.env, ...env }, encoding: 'utf8' })
 
 test('args and stdout pass through, exit 0', () => {
-  const r = runShim(['add', 'button', '--type=tsx', 'a b'], { MZIZI_BIN: fakeBin() })
+  const r = runShim(['add', 'button', '--type=tsx', 'a b'], { MZ_BIN: fakeBin() })
   assert.equal(r.status, 0)
   assert.deepEqual(r.stdout.trim().split('\n'), ['add', 'button', '--type=tsx', 'a b'])
 })
 
 test('exit codes pass through exactly', { skip: process.platform === 'win32' }, () => {
   for (const code of [1, 2, 3, 101]) {
-    assert.equal(runShim(['x'], { MZIZI_BIN: fakeBin(), FAKE_EXIT: String(code) }).status, code)
+    assert.equal(runShim(['x'], { MZ_BIN: fakeBin(), FAKE_EXIT: String(code) }).status, code)
   }
 })
 
 test('no binary and no download: a clear error, exit 1', () => {
-  const r = runShim([], { MZIZI_BIN: '', MZIZI_SKIP_DOWNLOAD: '1', MZIZI_DOWNLOAD_BASE: 'file:///nonexistent' })
+  const r = runShim([], { MZ_BIN: '', MZ_SKIP_DOWNLOAD: '1', MZ_DOWNLOAD_BASE: 'file:///nonexistent' })
   if (r.status === 0) return // a platform package happens to be installed here
   assert.equal(r.status, 1)
   assert.match(r.stderr, /^mz: /)
-  assert.match(r.stderr, /MZIZI_BIN|cargo install/)
+  assert.match(r.stderr, /MZ_BIN|cargo install/)
 })
 
 test('download verifies the checksum and refuses a mismatch', async () => {
@@ -121,7 +121,7 @@ test('download verifies the checksum and refuses a mismatch', async () => {
   fs.writeFileSync(path.join(dir, asset), bytes)
   const good = crypto.createHash('sha256').update(bytes).digest('hex')
   fs.writeFileSync(path.join(dir, 'SHA256SUMS'), `${good}  ${asset}\n`)
-  const env = { MZIZI_DOWNLOAD_BASE: `file://${base}` }
+  const env = { MZ_DOWNLOAD_BASE: `file://${base}` }
   const root = tmp()
   const out = await downloadBinary({ version: '9.9.9', row, platform: 'linux', env, root })
   assert.equal(fs.readFileSync(out).toString(), bytes.toString())
@@ -136,7 +136,7 @@ test('download verifies the checksum and refuses a mismatch', async () => {
 const REAL = path.join(__dirname, '..', '..', 'target', 'debug', process.platform === 'win32' ? 'mz.exe' : 'mz')
 test('the shim runs the real Rust binary: --version', { skip: !fs.existsSync(REAL) && `skipped: build it first (cargo build): ${REAL} is absent` }, () => {
   const want = /"version": "([^"]+)"/.exec(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))[1]
-  const r = runShim(['--version'], { MZIZI_BIN: REAL })
+  const r = runShim(['--version'], { MZ_BIN: REAL })
   assert.equal(r.status, 0)
   assert.equal(r.stdout.trim(), want)
 })

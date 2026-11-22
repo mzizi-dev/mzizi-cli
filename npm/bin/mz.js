@@ -11,14 +11,14 @@ function fail(message) {
   process.stderr.write(
     `mz: ${message}\n` +
       'Install the binary another way: cargo install mzizi-cli, the install.sh from\n' +
-      'https://github.com/mzizi-dev/mzizi-cli, or point MZIZI_BIN at an mz binary.\n',
+      'https://github.com/mzizi-dev/mzizi-cli, or point MZ_BIN at an mz binary.\n',
   )
   process.exit(1)
 }
 
 async function main() {
   let found = resolveBinary()
-  if (!found.path && !process.env.MZIZI_BIN && !process.env.MZIZI_SKIP_DOWNLOAD && found.row) {
+  if (!found.path && !process.env.MZ_BIN && !process.env.MZ_SKIP_DOWNLOAD && found.row) {
     try {
       const { downloadBinary } = require('../lib/download.js')
       await downloadBinary({ version: pkg.version, row: found.row, platform: process.platform })
@@ -28,7 +28,15 @@ async function main() {
     }
   }
   if (!found.path) return fail(found.reason)
-  const r = spawnSync(found.path, process.argv.slice(2), { stdio: 'inherit', windowsHide: false })
+  // Node keeps the link's name in argv[1], so the Rust side can tell which bin was typed
+  // (`mzizi` and `fundi` are deprecated names that print a note there).
+  const typed = require('node:path').basename(process.argv[1] || 'mz').replace(/\.(c?js|cmd|exe)$/i, '')
+  const invoked = typed === 'mzizi' || typed === 'fundi' ? typed : 'mz'
+  const r = spawnSync(found.path, process.argv.slice(2), {
+    stdio: 'inherit',
+    windowsHide: false,
+    env: { ...process.env, MZ_INVOKED_AS: invoked },
+  })
   if (r.error) return fail(`could not run ${found.path}: ${r.error.message}`)
   if (r.signal) {
     process.kill(process.pid, r.signal)

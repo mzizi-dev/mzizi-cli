@@ -21,25 +21,37 @@ pub fn run(argv: &[String], io: &mut Io<'_>) -> Result<()> {
         "check" if matches!(io.env.get("MZ_INVOKED_AS"), Some("mzizi" | "fundi")) => {
             floor::cmd_check(rest, io)?
         }
-        "check" => {
-            return Err(CliError::msg(
-                "`mz check` is the language compiler's command and arrives with it. \
-                 For the Bundu spacing floor use `mz floor`.",
-            ));
-        }
         "explore" => fundi::cmd_explore(rest, io)?,
         "plan" => fundi::cmd_plan(rest, io)?,
         "chat" => fundi::cmd_chat(rest, io)?,
         "login" => fundi::cmd_login(rest, io)?,
         "logout" => fundi::cmd_logout(rest, io)?,
         "whoami" => fundi::cmd_whoami(rest, io)?,
-        other => {
-            return Err(CliError::msg(format!(
-                "unknown command \"{other}\". Run `mz --help`."
-            )));
-        }
+        // Everything else is the language toolchain's: check, fix, contract, outline, hash,
+        // ir, build, run, harness, or a bare path (which means check).
+        _ => return lang_command(argv),
     }
     Ok(())
+}
+
+/// Hand a command to the language driver and carry its exit status. The driver prints its
+/// own output and returns a process exit code.
+fn lang_command(argv: &[String]) -> Result<()> {
+    let code = crate::lang::run_command(argv.to_vec());
+    // `ExitCode` is opaque: its Debug form is `ExitCode(unix_exit_status(N))` (or a platform
+    // variant), so read the status back from that.
+    let dbg = format!("{code:?}");
+    let n: u8 = dbg
+        .chars()
+        .filter(char::is_ascii_digit)
+        .collect::<String>()
+        .parse()
+        .unwrap_or(0);
+    if n == 0 {
+        Ok(())
+    } else {
+        Err(CliError::Exit(n))
+    }
 }
 
 /// The process entry point shared by every bin. Returns the exit code.
@@ -69,6 +81,7 @@ pub fn main_with(invoked_as: &str, argv: Vec<String>) -> i32 {
     match run(&argv, &mut io) {
         Ok(()) => 0,
         Err(CliError::CheckFailed) => 1,
+        Err(CliError::Exit(c)) => i32::from(c),
         Err(CliError::Msg(m)) => {
             let _ = writeln!(io.err, "error: {m}");
             1

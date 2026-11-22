@@ -10,6 +10,7 @@ pub mod add;
 pub mod cli;
 pub mod floor;
 pub mod fundi;
+pub mod lang;
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -56,6 +57,8 @@ pub enum CliError {
     Msg(String),
     /// The floor check found violations. The report is already on stdout; exit 1, print nothing.
     CheckFailed,
+    /// A language command finished with this exit status (1, 2, 3, 101, 141 ...).
+    Exit(u8),
 }
 
 impl CliError {
@@ -70,6 +73,7 @@ impl std::fmt::Display for CliError {
         match self {
             CliError::Msg(m) => f.write_str(m),
             CliError::CheckFailed => f.write_str("check failed"),
+            CliError::Exit(c) => write!(f, "exit {c}"),
         }
     }
 }

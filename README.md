@@ -5,16 +5,15 @@ their dependencies from api.mzizi.dev, `mz floor` enforces the Bundu spacing flo
 `mz explore` snapshots a project, and `mz plan` / `mz chat` are the fundi architecture
 agent. Apache-2.0. A Bundu Foundation project.
 
-> **Status: the Rust port is at parity work, not released.** This repository replaces the
-> TypeScript `@nyuchi/mzizi-cli` (`mzizi-dev/agent-tools`, `mzizi-cli/`, 0.13.0). The
-> table below says what has landed. Nothing here is published to crates.io or npm yet.
+> **Status: ported and parity-checked, not released.** This repository replaces the
+> TypeScript `@nyuchi/mzizi-cli` (`mzizi-dev/agent-tools`, `mzizi-cli/`, 0.13.0). Nothing here is published to crates.io or npm yet.
 
-| Command            | Source of truth                          | State |
-| ------------------ | ---------------------------------------- | ----- |
-| `mz add`           | TypeScript CLI 0.13.0                    | see `docs/porting/add.md` |
-| `mz floor`         | TypeScript `mzizi check`                 | see `docs/porting/floor.md` |
-| `mz explore`, `plan`, `chat`, `login`, `logout`, `whoami` | TypeScript CLI 0.13.0 | see `docs/porting/fundi.md` |
-| `mz check`, `fix`, `contract`, `outline`, `hash`, `ir`, `build`, `run`, `harness` | the language compiler in mzizi-dev/mzizi | **not here yet**: the compiler's dispatch lives in its `main.rs`, so it needs a library entry point first. Owner decision pending. See [#1](https://github.com/mzizi-dev/mzizi-cli/issues/1). |
+- `mz add`, `mz floor` (the TypeScript `mzizi check`), `mz explore`, `mz plan`, `mz chat`,
+  `mz login`, `mz logout`, `mz whoami`: ported from the TypeScript CLI 0.13.0. Parity notes
+  and the test maps are in `docs/porting/add.md`, `floor.md` and `fundi.md`.
+- `mz check`, `fix`, `contract`, `outline`, `hash`, `ir`, `build`, `run`, `harness`: the
+  language commands, moved here from the compiler's `main.rs` with history
+  (`docs/porting/lang.md`); the compiler stays in mzizi-dev/mzizi as a library.
 
 ## Names
 
