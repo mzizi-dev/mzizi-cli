@@ -10,6 +10,7 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ### Changed
 
+- **The release is fully automatic after the tag push.** `release.yml` drafts the GitHub release, publishes to crates.io, then to npm (`npm publish --provenance`, OIDC), and makes the release public when both succeeded. Every publish step skips a version already published, so a failed job re-runs without a new tag. `docs/install.md` lists the repository settings that lock it down. Refs #3.
 - **The language compiler comes from crates.io.** `mzizi-lang-compiler = 0.18.0` (default features off) replaces the git tag `v0.17.0`; the Dependabot ignore and the `allow-git` entry in `deny.toml` are gone. Refs #3.
 - **Version 0.14.0** across the crate, the npm package, install.sh, the Homebrew draft and the docs, continuing `@nyuchi/mzizi-cli` 0.13.0 (owner-approved release-policy exception; the baseline is the `v0.13.0` tag). Refs #3.
 - **One npm package.** `@nyuchi/mzizi-cli` bundles the binary of every platform (about 15 MB packed, 30 MB installed) and the six per-platform packages and the download fallback are gone; only one package needs npm publishing setup.
