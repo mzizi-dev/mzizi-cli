@@ -99,10 +99,12 @@ jobs:
         run: cargo build --release --locked --target "${{ matrix.target }}" --bin mz
       - name: Smoke-test the binary where it can run
         shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
           out=$("target/${{ matrix.target }}/release/mz${{ matrix.ext }}" --version)
-          [ "$out" = "${{ needs.version.outputs.version }}" ] || { echo "::error::mz --version printed '$out'"; exit 1; }
+          [ "$out" = "$VERSION" ] || { echo "::error::mz --version printed '$out'"; exit 1; }
       - name: Name the asset
         shell: bash
         run: |
@@ -192,7 +194,7 @@ jobs:
       - name: Publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish --locked
+        run: cargo publish --locked # zizmor: ignore[use-trusted-publishing] crates.io trusted publishing is not set up for this crate yet; the owner decides (see docs/install.md)
 
   publish-npm:
     name: Publish to npm
@@ -215,7 +217,7 @@ jobs:
           package-manager-cache: false
           node-version: "22"
       - name: Install npm with trusted publishing support
-        run: npm install -g npm@^11.5.1
+        run: npm install -g npm@^11.5.1 # zizmor: ignore[adhoc-packages] npm trusted publishing needs npm >= 11.5.1, newer than the runner's
       - name: Publish the platform packages, then the launcher
         run: |
           set -euo pipefail
