@@ -13,9 +13,9 @@ for f in examples/*.mz examples/components/*.mz primitives/*.mz; do
   for c in "check" "check --agent" contract outline hash ir; do
     n=$((n + 1))
     # shellcheck disable=SC2086
-    a=$("$old" $c "$f" 2>&1; echo "rc=$?")
+    a=$("$old" $c "$f" 2>&1 | sed -E 's/[0-9]+ ?ms/Nms/g'; echo "rc=${PIPESTATUS[0]}")
     # shellcheck disable=SC2086
-    b=$("$OLDPWD/$new" $c "$f" 2>&1; echo "rc=$?")
+    b=$("$OLDPWD/$new" $c "$f" 2>&1 | sed -E 's/[0-9]+ ?ms/Nms/g'; echo "rc=${PIPESTATUS[0]}")
     [ "$a" = "$b" ] || { bad=$((bad + 1)); echo "DIFF $c $f"; }
   done
 done
