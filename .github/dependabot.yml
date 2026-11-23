@@ -32,3 +32,17 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: build
+  # The npm launcher has no dependencies today. If one is added, majors (TypeScript 7 among them)
+  # arrive only when someone chooses them, as everywhere else in this repo.
+  - package-ecosystem: npm
+    directory: /npm
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
