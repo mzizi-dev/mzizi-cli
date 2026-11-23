@@ -4,6 +4,10 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### 0.14.2 — `pnpm dlx` and `bunx` run the package
+
+- `@nyuchi/mzizi-cli` has a bin named like the package (`mzizi-cli`), so `pnpm dlx @nyuchi/mzizi-cli` and `bunx` run it; `npx` already did (#17). Nothing else changes in the binary. Refs #3.
+
 ### Fixed — `pnpm dlx @nyuchi/mzizi-cli` needs a bin named like the package
 
 - **`npm/package.json`:** the package has three bins (`mz`, `mzizi`, `fundi`) and none named `mzizi-cli`, so `pnpm dlx @nyuchi/mzizi-cli --version` stopped with a hint ("pnpm --package=@nyuchi/mzizi-cli dlx mzizi") instead of running; `npx` happened to pick the first bin. A fourth bin, `mzizi-cli`, points at the same launcher, so `npx`, `pnpm dlx` and `bunx` all run it. The launcher treats it as `mz`. Takes effect in the next release (0.14.2). Refs #3.
