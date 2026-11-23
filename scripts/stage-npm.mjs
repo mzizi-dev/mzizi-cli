@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Stage the ONE npm package, with every platform binary bundled. Publishes nothing.
 //
-//   node scripts/stage-npm.mjs --version 0.14.0 --bin-dir dist --out stage [--checksums dist/SHA256SUMS]
+//   node scripts/stage-npm.mjs --version 0.14.1 --bin-dir dist --out stage [--checksums dist/SHA256SUMS]
 //
 // <bin-dir> holds release assets named mz-<triple>[.exe]. Each present asset is copied to
 // <out>/vendor/<triple>/mz[.exe]; the launcher (npm/) is copied beside it and its version set.
@@ -43,6 +43,7 @@ export function stage({ version, binDir, out, checksums, requireAll = false }) {
   });
   const staged = [];
   const missing = [];
+  const shas = {};
   for (const row of PLATFORMS) {
     const asset = `mz-${row.triple}${row.os === "win32" ? ".exe" : ""}`;
     const src = join(binDir, asset);
@@ -57,8 +58,12 @@ export function stage({ version, binDir, out, checksums, requireAll = false }) {
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(src, dest);
     chmodSync(dest, 0o755);
+    shas[row.triple] = sha;
     staged.push(row.triple);
   }
+  // The launcher checks a cache copy against these when it cannot chmod the bundled binary.
+  mkdirSync(join(out, "vendor"), { recursive: true });
+  writeFileSync(join(out, "vendor", "checksums.json"), `${JSON.stringify(shas, null, 2)}\n`);
   if (requireAll && missing.length) throw new Error(`missing binaries for: ${missing.join(", ")}`);
   const pj = join(out, "package.json");
   const p = JSON.parse(readFileSync(pj, "utf8"));

@@ -20,7 +20,9 @@ the first release is published. The Homebrew tap does not exist yet.
 installed, measured on the staged package). A launcher with no CLI logic picks the binary for your
 platform and runs it, passing arguments, stdio, exit codes and signals straight through. The
 package keeps the bin names `mz`, `mzizi` and `fundi` (the last two are the old names, which print
-a deprecation note). There is no postinstall script and no download.
+a deprecation note). There is no postinstall script and no download. If your package manager leaves the bundled binary without the
+execute bit (0.14.0 did), the launcher sets it, or, when the package directory is read-only, runs a copy from
+`~/.cache/mz/bin` (mode 0700) that it verified against the checksums shipped in the package.
 
 | Platform                 | Bundled target               |
 | ------------------------ | ---------------------------- |
@@ -48,7 +50,7 @@ Installs `mz`, and `mzizi` and `fundi`, the old names, which print a deprecation
 ## install.sh
 
 Installs the release binary to `~/.local/bin` (or `$MZ_INSTALL_DIR`). It never uses sudo, and it
-refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.14.0` pins a
+refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.14.1` pins a
 version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Windows use npm or cargo.
 
 ## Homebrew
@@ -64,6 +66,8 @@ A release is fully automatic after the tag push. No step waits for a person.
 3. Only after every build succeeded: it publishes the crate to crates.io (the `release` environment, the org
    `CARGO_REGISTRY_TOKEN`), then `npm publish --provenance` over OIDC (no npm token).
 4. When both succeeded, it makes the GitHub release public.
+5. It then installs the published package from npm on Linux, macOS and Windows and the crate with
+   `cargo install` on Linux, and runs `mz --version` and `mz floor` on a tiny fixture. A failure here fails the run.
 
 Every publish step skips a version that is already published, so a failed job is fixed with "Re-run failed jobs",
 never with a new tag. The release stays a draft until everything has published. Afterwards, fill in the Homebrew

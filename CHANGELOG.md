@@ -4,6 +4,14 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### Fixed — the npm package did not run (0.14.1)
+
+- **0.14.1: `npm install @nyuchi/mzizi-cli` ran `mz` as EACCES.** The 0.14.0 tarball held every bundled binary as mode 0644. Cause: the staged package travels between release jobs as a workflow artifact, and `actions/download-artifact` does not keep file modes, so the `chmod 0755` that `stage-npm.mjs` does was lost before `npm publish` (`npm pack` itself keeps the mode; checked). Three fixes: the launcher chmods the binary 0755 when it is not executable, and when it cannot (a read-only package directory) runs a copy from a per-user 0700 cache directory, verified against `vendor/checksums.json`; the publish job restores the bit and fails if the tarball it is about to publish has a non-executable binary; and a post-publish smoke test (below) installs the published package. `cargo install mzizi-cli` was not affected. Refs #3.
+
+### Added — smoke tests after a release
+
+- **`release.yml` smoke tests after publishing:** `npm install @nyuchi/mzizi-cli@<version>` from the registry on ubuntu, macOS and Windows, `mz --version` must print the version, and `mz floor` must pass a clean fixture and fail a bad one; and `cargo install mzizi-cli --version <version> --locked` on ubuntu. A failing smoke test fails the release run.
+
 ### Fixed
 
 - **`release.yml`:** the aarch64-apple-darwin build ran on the `macos-14` label, which never got a runner (the job sat unassigned and was cancelled in the dry run); it uses `macos-latest`, which CI already uses. Refs #3.
