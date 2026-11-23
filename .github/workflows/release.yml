@@ -316,9 +316,16 @@ jobs:
           dir=$(mktemp -d)
           cd "$dir"
           npm init -y >/dev/null
-          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+          # The registry can take several minutes to serve a version it just accepted (0.14.1
+          # needed more than two): wait for it to appear, then install.
+          for attempt in $(seq 1 40); do
+            if npm view "@nyuchi/mzizi-cli@${VERSION}" version >/dev/null 2>&1; then break; fi
+            [ "$attempt" -lt 40 ] || { echo "::error::npm still does not serve ${VERSION} after 10 minutes"; exit 1; }
+            sleep 15
+          done
+          for attempt in 1 2 3 4 5 6; do
             if npm install --no-audit --no-fund "@nyuchi/mzizi-cli@${VERSION}"; then break; fi
-            [ "$attempt" -lt 10 ] || { echo "::error::npm install failed 10 times"; exit 1; }
+            [ "$attempt" -lt 6 ] || { echo "::error::npm install failed 6 times"; exit 1; }
             sleep 15
           done
           out=$(npx --no-install mz --version)
