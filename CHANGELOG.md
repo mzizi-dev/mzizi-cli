@@ -4,6 +4,10 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### Fixed — `pnpm dlx @nyuchi/mzizi-cli` needs a bin named like the package
+
+- **`npm/package.json`:** the package has three bins (`mz`, `mzizi`, `fundi`) and none named `mzizi-cli`, so `pnpm dlx @nyuchi/mzizi-cli --version` stopped with a hint ("pnpm --package=@nyuchi/mzizi-cli dlx mzizi") instead of running; `npx` happened to pick the first bin. A fourth bin, `mzizi-cli`, points at the same launcher, so `npx`, `pnpm dlx` and `bunx` all run it. The launcher treats it as `mz`. Takes effect in the next release (0.14.2). Refs #3.
+
 ### Fixed — smoke tests wait for the registry, and a timing test is looser
 
 - **`release.yml` smoke test:** the 0.14.1 npm smoke test gave up after about 2.5 minutes with `ETARGET` while the version was still propagating (it was served minutes later). It now waits up to 10 minutes for `npm view` to see the version, then installs. Re-running the failed jobs passed on Linux, macOS and Windows.
