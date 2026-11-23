@@ -12,6 +12,7 @@ pub mod floor;
 pub mod fundi;
 pub mod lang;
 pub mod pathsafe;
+pub mod usage;
 
 use std::collections::HashMap;
 use std::io::Write;

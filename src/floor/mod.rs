@@ -558,7 +558,11 @@ pub fn cmd_check(args: &[String], io: &mut Io<'_>) -> Result<()> {
     while i < args.len() {
         let mut arg = args[i].as_str();
         if arg == "-h" || arg == "--help" {
-            io.out.write_all(crate::cli::HELP.as_bytes())?;
+            io.out.write_all(
+                crate::usage::for_command("floor")
+                    .unwrap_or_default()
+                    .as_bytes(),
+            )?;
             return Ok(());
         }
         if arg == "--json" {

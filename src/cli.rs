@@ -13,6 +13,17 @@ pub fn run(argv: &[String], io: &mut Io<'_>) -> Result<()> {
         io.out.write_all(HELP.as_bytes())?;
         return Ok(());
     };
+    // `-h` and `--help` before anything else is read: positional checks never see them.
+    if crate::usage::wants_help(rest) && !matches!(command.as_str(), "help" | "version") {
+        let name = match command.as_str() {
+            "check" if matches!(io.env.get("MZ_INVOKED_AS"), Some("mzizi" | "fundi")) => "floor",
+            c => c,
+        };
+        if let Some(text) = crate::usage::for_command(name) {
+            io.out.write_all(text.as_bytes())?;
+            return Ok(());
+        }
+    }
     match command.as_str() {
         "help" | "--help" | "-h" => io.out.write_all(HELP.as_bytes())?,
         "version" | "--version" | "-v" => writeln!(io.out, "{VERSION}")?,

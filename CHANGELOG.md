@@ -16,6 +16,7 @@ The first release to carry everything since 0.13.0 (the TypeScript `@nyuchi/mziz
 - **Registry and file safety.** Only `https://api.mzizi.dev/v1/` URLs are fetched, with same-origin redirects only; every file write goes through one path-safety module (relative paths only, no symlinks followed, directories made a level at a time).
 - **A fully automatic release.** One tag push builds seven targets, publishes to crates.io then npm with provenance, makes the GitHub release public, and runs smoke tests that install the published package on ubuntu, macOS and Windows and `cargo install` it on ubuntu.
 - **The language repo no longer ships `mz`.** mzizi-dev/mzizi keeps only a test-only `mz-driver` for the compiler's own tests (mzizi-dev/mzizi#190).
+- **`--help` and `-h` work for every subcommand.** `mz add --help`, `mz floor -h`, `mz plan --help` and the language commands (`check`, `fix`, `contract`, `outline`, `hash`, `ir`, `build`, `run`, `harness`) print that command's usage on stdout and exit 0, before any argument is checked. Before, `mz floor --help` printed the global help, `mz add --help` failed with "add requires at least one component name" and `mz add -h` looked up a component named `-h`. The old names `mzizi` and `fundi` behave the same (`check` still means `floor` there). After `--`, `-h` is an operand. `tests/help.rs` walks every subcommand and the old names.
 - **Install:** `npm i -g @nyuchi/mzizi-cli`, `npx @nyuchi/mzizi-cli`, `cargo install mzizi-cli --locked`, `brew install mzizi-dev/tap/mz`, or `install.sh`.
 - Minimum Rust is 1.89.
 
