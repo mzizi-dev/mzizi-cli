@@ -4,6 +4,10 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### Fixed — the npm smoke test retried against a stale cache
+
+- **`release.yml`:** the 0.14.1 npm smoke test failed on all three systems although the package was live: npm caches the "no matching version" answer, so each of its ten retries read the same stale metadata. It now installs with `--prefer-online` and retries for five minutes. The 0.14.1 publish itself was fine (installed and run from a clean directory by hand). Refs #3.
+
 ### Fixed — the npm package did not run (0.14.1)
 
 - **0.14.1: `npm install @nyuchi/mzizi-cli` ran `mz` as EACCES.** The 0.14.0 tarball held every bundled binary as mode 0644. Cause: the staged package travels between release jobs as a workflow artifact, and `actions/download-artifact` does not keep file modes, so the `chmod 0755` that `stage-npm.mjs` does was lost before `npm publish` (`npm pack` itself keeps the mode; checked). Three fixes: the launcher chmods the binary 0755 when it is not executable, and when it cannot (a read-only package directory) runs a copy from a per-user 0700 cache directory, verified against `vendor/checksums.json`; the publish job restores the bit and fails if the tarball it is about to publish has a non-executable binary; and a post-publish smoke test (below) installs the published package. `cargo install mzizi-cli` was not affected. Refs #3.
