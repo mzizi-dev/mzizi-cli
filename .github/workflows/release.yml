@@ -152,7 +152,7 @@ jobs:
           node ../scripts/pack-summary.mjs "$RUNNER_TEMP/pack.json" | tee -a "$GITHUB_STEP_SUMMARY"
           rm -f ./*.tgz
       - name: Launcher tests
-        run: node --test npm/test/launcher.test.js npm/test/stage.test.js
+        run: node --test npm/test/launcher.test.js npm/test/stage.test.js npm/test/exec.test.js
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-dist
@@ -245,6 +245,17 @@ jobs:
       - name: Install npm with trusted publishing support
         # Trusted publishing needs npm 11.5.1 or newer, newer than the runner's.
         run: npm install -g npm@^11.5.1 # zizmor: ignore[adhoc-packages]
+      # actions/download-artifact does not keep file modes: 0.14.0 went out with every bundled
+      # binary 0644. Put the bit back, then check the tarball npm will actually publish.
+      - name: Restore and check the executable bits
+        working-directory: stage
+        run: |
+          set -euo pipefail
+          chmod 0755 vendor/*/mz
+          npm pack --silent >/dev/null
+          bad=$(tar -tvzf ./*.tgz | grep -E ' package/vendor/[^/]+/mz$' | grep -v '^-rwx' || true)
+          rm -f ./*.tgz
+          if [ -n "$bad" ]; then echo "::error::bundled binaries without the exec bit:"; echo "$bad"; exit 1; fi
       # Re-runnable: a version that is already on npm is skipped, not an error.
       - name: Publish the one package (every platform binary is inside it)
         working-directory: stage
@@ -274,3 +285,70 @@ jobs:
           TAG: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
         run: gh release edit "$TAG" --repo "$REPO" --draft=false --latest
+
+  # The published artefacts, installed the way a user installs them, in a clean directory. A
+  # failure here fails the release run (the version is already public: fix forward with a patch).
+  smoke:
+    name: Smoke test (${{ matrix.os }})
+    needs: [version, publish-crates, publish-npm, finalize]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          package-manager-cache: false
+          node-version: "22"
+      # npm can take a minute to serve a version it just accepted, so retry the install.
+      - name: npm install the published package, run mz
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        # Installing the published package outside a lockfile is the point of this test.
+        run: | # zizmor: ignore[adhoc-packages]
+          set -euo pipefail
+          dir=$(mktemp -d)
+          cd "$dir"
+          npm init -y >/dev/null
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if npm install --no-audit --no-fund "@nyuchi/mzizi-cli@${VERSION}"; then break; fi
+            [ "$attempt" -lt 10 ] || { echo "::error::npm install failed 10 times"; exit 1; }
+            sleep 15
+          done
+          out=$(npx --no-install mz --version)
+          [ "$out" = "$VERSION" ] || { echo "::error::mz --version printed '$out', expected $VERSION"; exit 1; }
+          mkdir ok bad
+          printf '.card { padding: 21px; }\n' > ok/ok.css
+          printf '.card { padding-left: 4px; }\n' > bad/bad.css
+          npx --no-install mz floor ok
+          if npx --no-install mz floor bad; then echo "::error::mz floor passed a file below the floor"; exit 1; fi
+          echo "npm smoke test passed on ${RUNNER_OS}"
+
+  smoke-cargo:
+    name: Smoke test (cargo install)
+    needs: [version, publish-crates, finalize]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+      - name: cargo install the published crate, run mz
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if cargo install mzizi-cli --version "$VERSION" --locked; then break; fi
+            [ "$attempt" -lt 6 ] || { echo "::error::cargo install failed 6 times"; exit 1; }
+            sleep 20
+          done
+          out=$(mz --version)
+          [ "$out" = "$VERSION" ] || { echo "::error::mz --version printed '$out', expected $VERSION"; exit 1; }

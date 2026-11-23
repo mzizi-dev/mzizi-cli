@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/mzizi-dev/mzizi-cli/main/install.sh | sh
 #
 # Environment:
-#   MZ_VERSION        a version such as 0.14.0 (default: the latest release)
+#   MZ_VERSION        a version such as 0.14.1 (default: the latest release)
 #   MZ_INSTALL_DIR    where to put mz (default: $HOME/.local/bin). Never uses sudo.
 #   MZ_DOWNLOAD_BASE  release host, for mirrors and tests. Assets are read from
 #                        <base>/v<version>/ (needs MZ_VERSION). file:// works.

@@ -6,7 +6,7 @@
 class Mz < Formula
   desc "The Mzizi CLI: add registry components, check the Bundu floor, plan with fundi"
   homepage "https://mzizi.dev"
-  version "0.14.0"
+  version "0.14.1"
   license "Apache-2.0"
 
   base = "https://github.com/mzizi-dev/mzizi-cli/releases/download/v#{version}"
