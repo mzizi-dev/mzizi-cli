@@ -195,13 +195,13 @@ pub fn build_install_plan(
                     item.name
                 )
             })?;
-            if let Some((_, prev)) = claimed.iter().find(|(r, _)| *r == rel) {
-                if *prev != item.name {
-                    return Err(format!(
-                        "both {prev} and {} want to write {rel}. Two registry documents claiming one destination is a registry defect; install them separately and report it.",
-                        item.name
-                    ));
-                }
+            if let Some((_, prev)) = claimed.iter().find(|(r, _)| *r == rel)
+                && *prev != item.name
+            {
+                return Err(format!(
+                    "both {prev} and {} want to write {rel}. Two registry documents claiming one destination is a registry defect; install them separately and report it.",
+                    item.name
+                ));
             }
             match claimed.iter_mut().find(|(r, _)| *r == rel) {
                 Some(slot) => slot.1 = item.name.clone(),

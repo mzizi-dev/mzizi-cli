@@ -218,10 +218,10 @@ fn strip_comments(text: &str, line_comments: bool) -> Vec<String> {
 fn exemption_reason(line: &str, marker: &str) -> Option<String> {
     let at = line.find(marker)?;
     let mut rest = &line[at + marker.len()..];
-    if rest.trim_start().starts_with(':') {
-        if let Some(c) = rest.find(':') {
-            rest = &rest[c + 1..];
-        }
+    if rest.trim_start().starts_with(':')
+        && let Some(c) = rest.find(':')
+    {
+        rest = &rest[c + 1..];
     }
     for closer in ["*/", "--!>", "-->"] {
         if let Some(i) = rest.find(closer) {
@@ -497,10 +497,10 @@ fn named_gap(s: &str) -> Option<&'static str> {
             ("control-gap", "--space-control-gap"),
             ("label-gap", "--space-label-gap"),
         ] {
-            if let Some(after) = rest.strip_prefix(suffix) {
-                if after.chars().next().is_none_or(|c| !is_word_dash(c)) {
-                    return Some(full);
-                }
+            if let Some(after) = rest.strip_prefix(suffix)
+                && after.chars().next().is_none_or(|c| !is_word_dash(c))
+            {
+                return Some(full);
             }
         }
         from += at + 1;
@@ -935,32 +935,31 @@ fn declaration_hits(line: &str, opts: &Opts, ctx: &Ctx) -> Vec<Hit> {
             } else {
                 HIT_DESKTOP_PX
             };
-            if let Some(&Some(v)) = px.first() {
-                if v < min {
-                    hits.push(hit(
-                        "hit-floor",
-                        Severity::Error,
-                        None,
-                        &found,
-                        index,
-                        min,
-                        Some(v),
-                        format!(
-                            "`{found}` is {}px; {name} may not be under {}px",
-                            js_num(v),
-                            js_num(min)
-                        ),
-                    ));
-                }
+            if let Some(&Some(v)) = px.first()
+                && v < min
+            {
+                hits.push(hit(
+                    "hit-floor",
+                    Severity::Error,
+                    None,
+                    &found,
+                    index,
+                    min,
+                    Some(v),
+                    format!(
+                        "`{found}` is {}px; {name} may not be under {}px",
+                        js_num(v),
+                        js_num(min)
+                    ),
+                ));
             }
         } else if name == "height" || name == "min-height" {
-            if let Some(&Some(v)) = px.first() {
-                if v > 0.0 {
-                    hits.extend(
-                        hit_hit(v, &found, index, ctx)
-                            .or_else(|| number_hit(v, &found, index, ctx)),
-                    );
-                }
+            if let Some(&Some(v)) = px.first()
+                && v > 0.0
+            {
+                hits.extend(
+                    hit_hit(v, &found, index, ctx).or_else(|| number_hit(v, &found, index, ctx)),
+                );
             }
         } else if name == "line-height" {
             let ratio = if unitless().is_match(value) {
@@ -975,10 +974,10 @@ fn declaration_hits(line: &str, opts: &Opts, ctx: &Ctx) -> Vec<Hit> {
                 None
             };
             // `line-height: 0` collapses an icon or wrapper box; it is not body leading.
-            if let Some(r) = ratio {
-                if r != 0.0 {
-                    hits.extend(leading_hit(r, &found, index));
-                }
+            if let Some(r) = ratio
+                && r != 0.0
+            {
+                hits.extend(leading_hit(r, &found, index));
             }
         } else if name.starts_with("margin") {
             if let Some(neg) = px.iter().flatten().find(|v| **v < 0.0) {

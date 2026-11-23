@@ -7,6 +7,9 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 ### Fixed
 
 - **`release.yml`:** the aarch64-apple-darwin build ran on the `macos-14` label, which never got a runner (the job sat unassigned and was cancelled in the dry run); it uses `macos-latest`, which CI already uses. Refs #3.
+- **Linux sign-in storage.** The "OS keychain" on Linux was the kernel keyutils store, which is memory-only (gone at reboot) and never the Secret Service, so `mz login` reported a save that did not last, and GNOME Keyring, KeePassXC and KWallet were ignored. Linux now uses the Secret Service over D-Bus through `secret-service` 6 (zbus 6, pure Rust, no libdbus or OpenSSL; `keyring` 3 stays for macOS and Windows; no `cargo deny` ignores, since zbus 4 and 5 carry RUSTSEC unmaintained notices); with no session bus or secret service it falls back to `auth.json`. Closes #9.
+- **The `auth.json` fallback is hardened.** Written to a fresh `O_EXCL` temp file at mode 0600 and renamed into place (never present with looser bits); the config directory is 0700 (a looser one of ours is tightened); a symlink, or a directory or file owned by another user, is refused on write and ignored on read; the token text is zeroized after use. Closes #9.
+- **Minimum Rust is now 1.89** (`secret-service` 6 needs it), with the clippy `collapsible_if` rewrites that edition 2024 at 1.88 and later enables. Refs #9.
 
 ### Changed
 

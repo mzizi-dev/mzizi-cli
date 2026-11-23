@@ -137,15 +137,17 @@ pub fn required_px(
     gap_token: Option<&str>,
 ) -> (f64, Tier) {
     let tier = if dense { Tier::Dense } else { Tier::Default };
-    if sibling && kind == Kind::Gap {
-        if let Some(card) = token_floor("--space-card-gap", dense) {
-            return (card, tier);
-        }
+    if sibling
+        && kind == Kind::Gap
+        && let Some(card) = token_floor("--space-card-gap", dense)
+    {
+        return (card, tier);
     }
-    if kind == Kind::Gap && layer == Some(Layer::Controls) {
-        if let Some(named) = gap_token.and_then(|g| token_floor(g, dense)) {
-            return (named, tier);
-        }
+    if kind == Kind::Gap
+        && layer == Some(Layer::Controls)
+        && let Some(named) = gap_token.and_then(|g| token_floor(g, dense))
+    {
+        return (named, tier);
     }
     match layer.and_then(|l| floor_of(l, kind)) {
         None => (

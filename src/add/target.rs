@@ -208,15 +208,14 @@ pub fn choose_target(
             reason: "--target".into(),
         };
     }
-    if let Some(d) = detected {
-        if let Some(t) = d.target {
-            if available.contains(&t) {
-                return Choice::Chosen {
-                    target: t,
-                    reason: d.reason.clone(),
-                };
-            }
-        }
+    if let Some(d) = detected
+        && let Some(t) = d.target
+        && available.contains(&t)
+    {
+        return Choice::Chosen {
+            target: t,
+            reason: d.reason.clone(),
+        };
     }
     if available.len() == 1 {
         let only = available[0];

@@ -568,11 +568,11 @@ pub fn cmd_check(args: &[String], io: &mut Io<'_>) -> Result<()> {
         }
         // `--exclude=dir` and `--exclude dir` are the same.
         let mut inline: Option<&str> = None;
-        if arg.starts_with("--") {
-            if let Some(eq) = arg.find('=') {
-                inline = Some(&arg[eq + 1..]);
-                arg = &arg[..eq];
-            }
+        if arg.starts_with("--")
+            && let Some(eq) = arg.find('=')
+        {
+            inline = Some(&arg[eq + 1..]);
+            arg = &arg[..eq];
         }
         if arg == "--exclude" || arg == "--spacing-unit" || arg == "--rem" {
             let value = inline.or_else(|| args.get(i + 1).map(String::as_str));

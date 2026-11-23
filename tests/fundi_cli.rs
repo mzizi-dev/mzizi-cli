@@ -615,6 +615,66 @@ fn an_unusable_keychain_falls_back_to_the_file() {
     assert_eq!(store.read(&mut Vec::new()).unwrap().access_token, "t");
 }
 
+#[cfg(unix)]
+#[test]
+fn the_file_fallback_is_private_the_file_0600_and_the_new_directory_0700() {
+    use mzizi_cli::fundi::token_store::NoKeychain;
+    use std::os::unix::fs::PermissionsExt;
+    let cfg = tempfile::tempdir().unwrap();
+    let store = TokenStore::new(cfg.path().to_path_buf(), Box::new(NoKeychain));
+    let Saved::File(path) = store.write(&auth("t")).unwrap() else {
+        panic!("no keychain, so the file store");
+    };
+    let mode = |p: &std::path::Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode(&path), 0o600);
+    assert_eq!(mode(path.parent().unwrap()), 0o700);
+    // A looser file left by an older version is tightened on the next write.
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    store.write(&auth("t2")).unwrap();
+    assert_eq!(mode(&path), 0o600);
+}
+
+#[cfg(unix)]
+#[test]
+fn the_file_store_refuses_symlinks_tightens_a_loose_dir_and_leaves_no_temp_files() {
+    use mzizi_cli::fundi::token_store::NoKeychain;
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    // A loose directory of ours is tightened to 0700; no temp file is left behind.
+    let cfg = tempfile::tempdir().unwrap();
+    let dir = cfg.path().join("mz");
+    std::fs::create_dir(&dir).unwrap();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let store = TokenStore::new(cfg.path().to_path_buf(), Box::new(NoKeychain));
+    store.write(&auth("t")).unwrap();
+    assert_eq!(
+        std::fs::metadata(&dir).unwrap().permissions().mode() & 0o777,
+        0o700
+    );
+    let names: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect();
+    assert_eq!(names, ["auth.json"]);
+
+    // An auth.json that is a symlink is neither written through nor read.
+    let elsewhere = cfg.path().join("elsewhere");
+    std::fs::write(&elsewhere, "keep").unwrap();
+    std::fs::remove_file(store.path()).unwrap();
+    symlink(&elsewhere, store.path()).unwrap();
+    assert!(store.write(&auth("x")).is_err());
+    assert_eq!(std::fs::read_to_string(&elsewhere).unwrap(), "keep");
+    assert!(store.read(&mut Vec::new()).is_none());
+
+    // A config directory that is a symlink is refused.
+    let cfg2 = tempfile::tempdir().unwrap();
+    let real = cfg2.path().join("real");
+    std::fs::create_dir(&real).unwrap();
+    symlink(&real, cfg2.path().join("mz")).unwrap();
+    let store2 = TokenStore::new(cfg2.path().to_path_buf(), Box::new(NoKeychain));
+    assert!(store2.write(&auth("x")).is_err());
+    assert!(!real.join("auth.json").exists());
+}
+
 #[test]
 fn logout_removes_the_keychain_entry_the_file_and_the_legacy_file() {
     let cfg = tempfile::tempdir().unwrap();

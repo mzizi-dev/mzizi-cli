@@ -26,7 +26,7 @@ Tests: `tests/fundi_unit.rs`, `tests/fundi_cli.rs` (84 tests, no live network, n
   (`warning: MZIZI_MODEL is deprecated, use MZ_MODEL`). `WORKOS_ACCESS_TOKEN`, `ANTHROPIC_API_KEY`
   and `ANTHROPIC_BASE_URL` (the SDK's own variable) are unchanged. User-visible text says `mz`.
 - **Token store** (`token_store.rs`). Read order: OS keychain (service `mz`, account `cli`, `keyring`
-  v3: Keychain / Credential Manager / kernel keyutils), then `$XDG_CONFIG_HOME/mz/auth.json`
+  v3 on macOS and Windows; Linux uses `secret-service` 6 over D-Bus, not the memory-only kernel keyutils), then `$XDG_CONFIG_HOME/mz/auth.json`
   (default `~/.config/mz/auth.json`, 0600, byte-compatible with what the TS CLI wrote), then the
   TS location `.../mzizi/auth.json`. Write: keychain if it works (and any stale file is removed),
   else the file. A token found only at the old path is migrated on first read (to the keychain or
