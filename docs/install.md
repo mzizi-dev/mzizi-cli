@@ -55,7 +55,7 @@ version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Wi
 
 ## Homebrew
 
-`packaging/homebrew/mz.rb` is a draft formula. It needs a tap and real checksums from a release.
+`packaging/homebrew/mz.rb` is the source of the formula published in mzizi-dev/homebrew-tap; each release updates both with that release's checksums.
 
 ## How a release runs
 
