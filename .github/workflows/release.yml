@@ -316,9 +316,11 @@ jobs:
           dir=$(mktemp -d)
           cd "$dir"
           npm init -y >/dev/null
-          for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            if npm install --no-audit --no-fund "@nyuchi/mzizi-cli@${VERSION}"; then break; fi
-            [ "$attempt" -lt 10 ] || { echo "::error::npm install failed 10 times"; exit 1; }
+          # --prefer-online: npm caches the "no such version" answer, so without it every retry
+          # reads the stale packument and fails the same way (0.14.1's first smoke run did).
+          for attempt in $(seq 1 20); do
+            if npm install --no-audit --no-fund --prefer-online "@nyuchi/mzizi-cli@${VERSION}"; then break; fi
+            [ "$attempt" -lt 20 ] || { echo "::error::npm install failed 20 times"; exit 1; }
             sleep 15
           done
           out=$(npx --no-install mz --version)
