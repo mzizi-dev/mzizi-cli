@@ -15,7 +15,8 @@
   "bin": {
     "fundi": "bin/mz.js",
     "mz": "bin/mz.js",
-    "mzizi": "bin/mz.js"
+    "mzizi": "bin/mz.js",
+    "mzizi-cli": "bin/mz.js"
   },
   "files": [
     "bin",

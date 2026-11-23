@@ -155,3 +155,10 @@ test(
     assert.equal(r.stdout.trim(), want);
   },
 );
+
+test("one bin is named like the package, so npx, pnpm dlx and bunx can pick it", () => {
+  const pkg = require("../package.json");
+  const unscoped = pkg.name.split("/").pop();
+  assert.equal(pkg.bin[unscoped], "bin/mz.js");
+  for (const name of ["mz", "mzizi", "fundi"]) assert.equal(pkg.bin[name], "bin/mz.js");
+});
