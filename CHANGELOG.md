@@ -4,6 +4,22 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### 0.15.0 — the one Rust `mz`, with a working npm package
+
+The first release to carry everything since 0.13.0 (the TypeScript `@nyuchi/mzizi-cli` in agent-tools): one Rust binary, `mz`, for the registry, the spacing floor, the fundi agent tools and the Mzizi language. Versions 0.14.0 to 0.14.2 were the path here; read this entry rather than them. Refs #19.
+
+- **One binary.** `mz add`, `mz floor`, `mz explore`, `mz plan`, `mz chat`, `mz login`, `mz whoami`, and the language commands (`mz check`, `contract`, `fix`, `build`, `run`, `outline`, `ir`, `harness`) from `mzizi-lang-compiler` 0.18.0 on crates.io. `mzizi` and `fundi` still run, with a deprecation note; `MZ_*` environment variables replace `MZIZI_*`, which still work as deprecated fallbacks.
+- **`mz floor` reads its thresholds from the Mzizi tokens** (`src/floor/generated.rs` is generated from the registry's `tokens.css`, and CI checks it is current). The `--json` report says `"tool": "mz floor"`.
+- **One bundled npm package.** `@nyuchi/mzizi-cli` carries the binary of all seven platforms (about 17 MB packed, 37 MB installed) behind a small launcher, so there is no per-platform dependency to resolve. It repairs a lost execute bit at run time (0.14.0 shipped its binaries as mode 0644 and `npm install` gave EACCES).
+- **`pnpm dlx @nyuchi/mzizi-cli` and `bunx` work.** The package has a bin named like itself (`mzizi-cli`), next to `mz`, `mzizi` and `fundi`.
+- **The Linux keychain is the Secret Service.** It was the kernel keyutils store, which is memory-only. Sign-in tokens are kept in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service), then in `$XDG_CONFIG_HOME/mz/auth.json` at mode 0600, written through an `O_EXCL` temp file and renamed into place. Old `mzizi` tokens migrate.
+- **Registry and file safety.** Only `https://api.mzizi.dev/v1/` URLs are fetched, with same-origin redirects only; every file write goes through one path-safety module (relative paths only, no symlinks followed, directories made a level at a time).
+- **A fully automatic release.** One tag push builds seven targets, publishes to crates.io then npm with provenance, makes the GitHub release public, and runs smoke tests that install the published package on ubuntu, macOS and Windows and `cargo install` it on ubuntu.
+- **The language repo no longer ships `mz`.** mzizi-dev/mzizi keeps only a test-only `mz-driver` for the compiler's own tests (mzizi-dev/mzizi#190).
+- **`--help` and `-h` work for every subcommand.** `mz add --help`, `mz floor -h`, `mz plan --help` and the language commands (`check`, `fix`, `contract`, `outline`, `hash`, `ir`, `build`, `run`, `harness`) print that command's usage on stdout and exit 0, before any argument is checked. Before, `mz floor --help` printed the global help, `mz add --help` failed with "add requires at least one component name" and `mz add -h` looked up a component named `-h`. The old names `mzizi` and `fundi` behave the same (`check` still means `floor` there). After `--`, `-h` is an operand. `tests/help.rs` walks every subcommand and the old names.
+- **Install:** `npm i -g @nyuchi/mzizi-cli`, `npx @nyuchi/mzizi-cli`, `cargo install mzizi-cli --locked`, `brew install mzizi-dev/tap/mz`, or `install.sh`.
+- Minimum Rust is 1.89.
+
 ### 0.14.2 — `pnpm dlx` and `bunx` run the package
 
 - `@nyuchi/mzizi-cli` has a bin named like the package (`mzizi-cli`), so `pnpm dlx @nyuchi/mzizi-cli` and `bunx` run it; `npx` already did (#17). Nothing else changes in the binary. Refs #3.

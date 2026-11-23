@@ -50,7 +50,7 @@ Installs `mz`, and `mzizi` and `fundi`, the old names, which print a deprecation
 ## install.sh
 
 Installs the release binary to `~/.local/bin` (or `$MZ_INSTALL_DIR`). It never uses sudo, and it
-refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.14.1` pins a
+refuses to install when the sha256 in `SHA256SUMS` does not match. `MZ_VERSION=0.15.0` pins a
 version. It supports macOS and Linux (glibc and musl, x86_64 and aarch64); on Windows use npm or cargo.
 
 ## Homebrew
