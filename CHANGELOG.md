@@ -4,6 +4,10 @@ All notable changes to this project are recorded here, in the Keep a Changelog s
 
 ## [Unreleased]
 
+### Changed — the Homebrew draft carries the v0.15.0 sha256 values
+
+- **`packaging/homebrew/mz.rb`:** version 0.15.0 and its SHA256SUMS, matching mzizi-dev/homebrew-tap. Closes #22.
+
 ### 0.15.0 — the one Rust `mz`, with a working npm package
 
 The first release to carry everything since 0.13.0 (the TypeScript `@nyuchi/mzizi-cli` in agent-tools): one Rust binary, `mz`, for the registry, the spacing floor, the fundi agent tools and the Mzizi language. Versions 0.14.0 to 0.14.2 were the path here; read this entry rather than them. Refs #19.
